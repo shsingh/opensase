@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.22.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: clamav
+  name: clamav
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: clamav
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.22.0 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/main: "true"
+        io.kompose.service: clamav
+    spec:
+      containers:
+        - image: sase_clamav:latest
+          name: clamav
+          ports:
+            - containerPort: 3310
+          resources: {}
+          volumeMounts:
+            - mountPath: /data
+              name: data
+      hostname: clamav
+      restartPolicy: Always
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: data
+status: {}

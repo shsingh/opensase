@@ -15,6 +15,8 @@ ADD ./bin /usr/local/bin
 ADD ./easyrsa3 /usr/local/share/easy-rsa
 ADD ./etc /etc
 
+RUN chmod a+x /usr/local/bin/*
+
 # Needed by scripts
 ENV OPENVPN=/etc/openvpn
 ENV EASYRSA=/usr/share/easy-rsa \
@@ -24,8 +26,4 @@ ENV EASYRSA=/usr/share/easy-rsa \
 # Internally uses port 1194, remap using docker
 EXPOSE 1194/udp
 
-CMD ["ovpn_run"]
-
-ADD ./bin /usr/local/bin
-RUN chmod a+x /usr/local/bin/*
-
+ENTRYPOINT ["/usr/local/bin/ovpn_run.sh"]

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.22.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: dnsmasq
+  name: dnsmasq
+spec:
+  ports:
+    - name: "53"
+      port: 53
+      targetPort: 53
+    - name: 53-udp
+      port: 53
+      protocol: UDP
+      targetPort: 53
+  selector:
+    io.kompose.service: dnsmasq
+status:
+  loadBalancer: {}

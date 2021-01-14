@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.22.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: squid
+  name: squid
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: squid
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.22.0 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/main: "true"
+        io.kompose.service: squid
+    spec:
+      containers:
+        - image: sase_squid:latest
+          name: squid
+          ports:
+            - containerPort: 3128
+            - containerPort: 3129
+            - containerPort: 3130
+          resources: {}
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          volumeMounts:
+            - mountPath: /data
+              name: data
+            - mountPath: /data-priv
+              name: squid-priv
+      hostname: squid
+      restartPolicy: Always
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: data
+        - name: squid-priv
+          persistentVolumeClaim:
+            claimName: squid-priv
+status: {}
