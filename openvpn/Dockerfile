@@ -13,12 +13,19 @@ RUN yum --quiet --assumeyes update && \
 # etc just with default config, copied to /usr/local/openvpn/etc on startup
 ADD ./bin /usr/local/bin
 ADD ./easyrsa3 /usr/local/share/easy-rsa
+ADD ./etc /etc
 
 # Needed by scripts
-ENV VPNCONFIG=/data-priv RANDFILE=/data-priv/.rnd EASYRSA="/usr/local/share/easy-rsa" EASYRSA_PKI="/data-priv/pki" EASYRSA_ALGO="ec" EASYRSA_CURVE="secp521r1"
+ENV OPENVPN=/etc/openvpn
+ENV EASYRSA=/usr/share/easy-rsa \
+  EASYRSA_CRL_DAYS=3650 \
+  EASYRSA_PKI=$OPENVPN/pki
 
 # Internally uses port 1194, remap using docker
 EXPOSE 1194/udp
 
-# this script will create the CA used for VPN certs
-ENTRYPOINT ["/usr/local/bin/ovpn_run.sh"]
+CMD ["ovpn_run"]
+
+ADD ./bin /usr/local/bin
+RUN chmod a+x /usr/local/bin/*
+
