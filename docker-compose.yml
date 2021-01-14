@@ -24,7 +24,7 @@ networks:
 services:
   dnsmasq:
     hostname: dnsmasq
-    image: vpnbox_dnsmasq:latest
+    image: sase_dnsmasq:latest
     build: ./dnsmasq/
     expose:
       - "53/tcp"
@@ -39,7 +39,7 @@ services:
 
   clamav:
     hostname: clamav
-    image: vpnbox_clamav:latest
+    image: sase_clamav:latest
     build: ./clamav/
     expose:
       - "3310/tcp"
@@ -51,7 +51,7 @@ services:
 
   cicap:
     hostname: cicap
-    image: vpnbox_cicap:latest
+    image: sase_cicap:latest
     build: ./cicap/
     depends_on:
       - clamav
@@ -64,12 +64,12 @@ services:
         ipv4_address: 192.168.50.4
 
   # Create Squid data container:
-  #   > docker run -ti --rm --volume=dockervpnbox_data:/data --volume=dockervpnbox_squid_priv:/data-priv vpnbox_squid --init
+  #   > docker run -ti --rm --volume=dockersase_data:/data --volume=dockersase_squid_priv:/data-priv sase_squid --init
   # Get already create Squid CA, to be trusted by Browsers:
-  #   > docker run -ti --rm --volume=dockervpnbox_data:/data --volume=dockervpnbox_squid_priv:/data-priv vpnbox_squid --getca
+  #   > docker run -ti --rm --volume=dockersase_data:/data --volume=dockersase_squid_priv:/data-priv sase_squid --getca
   squid:
     hostname: squid
-    image: vpnbox_squid:latest
+    image: sase_squid:latest
     build: ./squid/
     depends_on:
       - cicap
@@ -89,12 +89,12 @@ services:
 
   # in order for openvpn to start, needs to be initialized first interactively
   #   Create data container with CA:
-  #     > docker run -ti --rm --volume=dockervpnbox_data:/data --volume=dockervpnbox_openvpn_priv:/data-priv vpnbox_openvpn --init=udp://vpn.example.com:5443
+  #     > docker run -ti --rm --volume=dockersase_data:/data --volume=dockersase_openvpn_priv:/data-priv sase_openvpn --init=udp://vpn.example.com:5443
   #   Create client config:
-  #     > docker run -ti --rm --volume=dockervpnbox_data:/data --volume=dockervpnbox_openvpn_priv:/data-priv vpn-box/openvpn --getclient client01
+  #     > docker run -ti --rm --volume=dockersase_data:/data --volume=dockersase_openvpn_priv:/data-priv vpn-box/openvpn --getclient client01
   openvpn:
     hostname: openvpn
-    image: vpnbox_openvpn:latest
+    image: sase_openvpn:latest
     build: ./openvpn/
     depends_on:
       - dnsmasq
