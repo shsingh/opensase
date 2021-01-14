@@ -1,7 +1,5 @@
 # Secure Access Service Edge components with OSS tools
 
-Credits: the following repo is forked from https://github.com/sweitzel/docker-vpnbox
-
 Docker containers for OpenVPN and transparent Proxy (Squid+C-ICAP+ClamAV)
 
 This creates several containers to server as VPN server with explicit and transparent proxy capability.
@@ -167,3 +165,8 @@ docker rm sase_clamav_1 sase_squid_1 sase_cicap_1 sase_openvpn_1 sase_dnsmasq_1
 docker network rm sase_main
 docker image prune
 ```
+
+--
+
+### Credits: 
+The initial build for this was inspired from the work done by [@sweitzel](https://github.com/sweitzel)
