@@ -1,6 +1,6 @@
 # SASE (Secure Access Service Edge components using Open Source tools)
 
-## Credits: the following repo is forked from https://github.com/sweitzel/docker-sase
+Credits: the following repo is forked from https://github.com/sweitzel/docker-vpnbox
 
 Docker containers for OpenVPN and transparent Proxy (Squid+C-ICAP+ClamAV)
 
