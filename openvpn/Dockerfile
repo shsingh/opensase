@@ -16,12 +16,13 @@ ADD ./easyrsa3 /usr/local/share/easy-rsa
 ADD ./etc /etc
 
 RUN chmod a+x /usr/local/bin/*
-
 # Needed by scripts
-ENV OPENVPN=/etc/openvpn
-ENV EASYRSA=/usr/share/easy-rsa \
-  EASYRSA_CRL_DAYS=3650 \
-  EASYRSA_PKI=$OPENVPN/pki
+ENV VPNCONFIG=/data-priv 
+ENV RANDFILE=/data-priv/.rnd 
+ENV EASYRSA="/usr/local/share/easy-rsa" 
+ENV EASYRSA_PKI="/data-priv/pki" 
+ENV EASYRSA_ALGO="ec" 
+ENV EASYRSA_CURVE="secp521r1"
 
 # Internally uses port 1194, remap using docker
 EXPOSE 1194/udp
