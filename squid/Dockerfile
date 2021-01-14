@@ -9,11 +9,11 @@ WORKDIR /tmp
 ENV SQUIDGUARD_FILTER="adv spyware tracker"
 
 # Disable this to use the release version of Squid (e.g. as soon as Squid 4 is released)
-ADD ./repos.d/squid-cache-beta.repo /etc/yum.repos.d
+#ADD ./repos.d/squid-cache-beta.repo /etc/yum.repos.d
 
 RUN yum --quiet --assumeyes update && \
   yum --quiet --assumeyes install epel-release && \
-  yum --quiet --assumeyes --setopt=tsflags=nodocs install squid squid-helpers squidGuard curl openssl tar iproute iptables sudo && \
+  yum --quiet --assumeyes --setopt=tsflags=nodocs install squid squidGuard curl openssl tar iproute iptables sudo && \
   rm -rf /tmp/* /var/tmp/* /var/log/*
 
 ADD ./bin /usr/local/bin
