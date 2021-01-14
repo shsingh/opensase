@@ -1,4 +1,4 @@
-# SASE (Secure Access Service Edge) components with OSS
+# Secure Access Service Edge components with OSS tools
 
 Credits: the following repo is forked from https://github.com/sweitzel/docker-vpnbox
 
