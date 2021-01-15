@@ -163,7 +163,7 @@ fi
 run_or_exit "ip link set dev lo up"
 
 # check config
-if [ ! -e "${VPNCONFIG}/openvpn.conf" ]; then
+if [ ! -d "${VPNCONFIG}" ]; then
   echo "ERROR: openvpn.conf missing!"
   exit 1
 fi

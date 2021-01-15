@@ -13,12 +13,13 @@ RUN yum --quiet --assumeyes update && \
 # etc just with default config, copied to /usr/local/openvpn/etc on startup
 ADD ./bin /usr/local/bin
 ADD ./easyrsa3 /usr/local/share/easy-rsa
-ADD ./etc /etc
+ADD ./etc /data-priv
 
 RUN chmod a+x /usr/local/bin/*
+
 # Needed by scripts
-ENV VPNCONFIG=/data-priv 
-ENV RANDFILE=/data-priv/.rnd 
+ENV VPNCONFIG="/data-priv" 
+ENV RANDFILE="/data-priv/.rnd" 
 ENV EASYRSA="/usr/local/share/easy-rsa" 
 ENV EASYRSA_PKI="/data-priv/pki" 
 ENV EASYRSA_ALGO="ec" 
