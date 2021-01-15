@@ -26,7 +26,7 @@ spec:
         io.kompose.service: clamav
     spec:
       containers:
-        - image: sase_clamav:latest
+        - image: opensase_clamav:latest
           name: clamav
           ports:
             - containerPort: 3310

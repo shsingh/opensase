@@ -26,7 +26,7 @@ spec:
         io.kompose.service: squid
     spec:
       containers:
-        - image: sase_squid:latest
+        - image: opensase_squid:latest
           name: squid
           ports:
             - containerPort: 3128

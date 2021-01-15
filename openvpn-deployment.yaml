@@ -26,7 +26,7 @@ spec:
         io.kompose.service: openvpn
     spec:
       containers:
-        - image: sase_openvpn:latest
+        - image: opensase_openvpn:latest
           name: openvpn
           ports:
             - containerPort: 1194

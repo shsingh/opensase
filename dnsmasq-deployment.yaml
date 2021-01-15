@@ -26,7 +26,7 @@ spec:
         io.kompose.service: dnsmasq
     spec:
       containers:
-        - image: sase_dnsmasq:latest
+        - image: opensase_dnsmasq:latest
           name: dnsmasq
           ports:
             - containerPort: 53
