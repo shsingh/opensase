@@ -18,6 +18,7 @@ RUN yum --quiet --assumeyes update && \
 
 ADD ./bin /usr/local/bin
 ADD ./etc /etc/squid
+ADD ./ssl_cert /data-priv/ssl_cert
 
 # 3128 = standard explicit proxy (http)
 # 3129 = TPROXY  (transparent proxy for http traffic)

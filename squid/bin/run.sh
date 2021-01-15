@@ -296,7 +296,7 @@ fi
 # check ssl cache dir
 if [[ ! -d /data-priv/ssl_db/ || ! -e /data-priv/ssl_db/index.txt ]]; then
   rm -rf /data-priv/ssl_db/
-  run_or_exit "sudo -E -u squid -- /usr/lib64/squid/security_file_certgen -c -s /data-priv/ssl_db/"
+  run_or_exit "sudo -E -u squid -- /usr/lib64/squid/security_file_certgen -c -s /data-priv/ssl_db/ -M 4MB"
 fi
 chown -R squid:squid /data-priv/ssl_db/
 
