@@ -1,6 +1,6 @@
 # Open Secure Access Service Edge
 
-The purpose of this project is to build SASE components using OSS tools for testing (NOT FIT FOR PRODUCTION USE). 
+The purpose of this project is to build SASE components using OSS tools for testing.
 It will currently build Docker containers for OpenVPN and transparent Proxy (Squid+C-ICAP+ClamAV)
 
 OpenSASE creates several containers to server as VPN server with explicit and transparent proxy capability.
