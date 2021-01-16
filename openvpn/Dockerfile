@@ -18,6 +18,10 @@ ENV EASYRSA_PKI="/data-priv/pki"
 ENV EASYRSA_ALGO="ec" 
 ENV EASYRSA_CURVE="secp521r1"
 
+# VPN server instance details
+ENV VPN_SERVER_URI="udp://vpn.f5labs.dev"
+ENV CLIENT_CN="vpn.f5labs.dev"
+
 ADD ./bin /usr/local/bin
 ADD ./easyrsa3 /usr/local/share/easy-rsa
 COPY ./vpn/ /data-priv/
