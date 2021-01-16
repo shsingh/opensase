@@ -1,6 +1,6 @@
 # Open Secure Access Service Edge
 
-The purpose of this project is to build SASE components using OSS tools. 
+The purpose of this project is to build SASE components using OSS tools for testing (NOT FIT FOR PRODUCTION USE). 
 It will currently build Docker containers for OpenVPN and transparent Proxy (Squid+C-ICAP+ClamAV)
 
 OpenSASE creates several containers to server as VPN server with explicit and transparent proxy capability.
@@ -87,7 +87,7 @@ sudo openvpn openvpn/client.f5labs.dev.ovpn
     - double click the file (info window should be presented)
     - click "Install Certificate"
     - pick local user as install destination
-    - select "Trusted Root Certification Authorities" / "Vertrauenswürdige Stammzertifizierungsstellen" as store
+    - select "Trusted Root Certification Authorities" as store
     - verify in Internet Explorer that e.g. on https://www.google.com no certificate error is popping up anymore
       (Note: Google Chrome is using also the Windows store)
     - Firefox uses its own Cert store (Settings -> Extended -> Certificates)
@@ -126,7 +126,7 @@ ping 10.128.81.1
 * Applications run non-root
 * VPN CA is kept in a separate Docker Volume. Password should be kept at a secure location
 * VPN is using TLS 1.2 with Elliptic Curve certificates, DHE and tls-crypt channel.
-* Keys for OpenVPN and squid are stored in their respective directly *DO NOT USE THIS IN PRODUCTION*
+* Keys for OpenVPN and squid are stored in their respective directly --> *DO NOT USE THIS IN PRODUCTION*
 
 ### Blacklist
 * The blacklists can be configured by adjusting the Squid containers ENV var SQUIDGUARD_FILTER (list of space separated categories)
