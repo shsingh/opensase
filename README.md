@@ -141,6 +141,10 @@ ping 10.128.81.1
 * In case you want to remove the Docker containers, networks and volumes, the following steps can be used after stopping the services:
 ```bash
 docker rm opensase_clamav_1 opensase_squid_1 opensase_cicap_1 opensase_openvpn_1 opensase_dnsmasq_1
+docker rmi opensase_clamav opensase_squid opensase_cicap opensase_openvpn opensase_dnsmasq
+docker volume rm opensase_squid_priv
+docker volume rm opensase_openvpn_priv
+docker volume rm opensase_data
 docker network rm opensase_main
 docker image prune
 ```
