@@ -11,11 +11,11 @@ RUN yum --quiet --assumeyes update && \
   rm -rf /tmp/* /var/tmp/* /var/log/*
 
 # Needed by scripts
-ENV VPNCONFIG="/data-priv/" 
-ENV RANDFILE="/data-priv/.rnd" 
-ENV EASYRSA="/usr/local/share/easy-rsa" 
-ENV EASYRSA_PKI="/data-priv/pki" 
-ENV EASYRSA_ALGO="ec" 
+ENV VPNCONFIG="/data-priv"
+ENV RANDFILE="/data-priv/.rnd"
+ENV EASYRSA="/usr/local/share/easy-rsa"
+ENV EASYRSA_PKI="/data-priv/pki"
+ENV EASYRSA_ALGO="ec"
 ENV EASYRSA_CURVE="secp521r1"
 
 # VPN server instance details
