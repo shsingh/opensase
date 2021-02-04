@@ -150,4 +150,4 @@ docker image prune
 --
 
 ### Credits: 
-The initial build for this was inspired from the work done by [@sweitzel](https://github.com/sweitzel)
+The initial build for this was inspired from the work done by [@sweitzel](https://github.com/sweitzel) on the [docker-vpnbox](https://github.com/sweitzel/docker-vpnbox) project
