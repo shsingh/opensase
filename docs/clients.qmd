@@ -38,7 +38,7 @@ ping <appliance>                                # tunnel up
 curl -x http://<appliance>:8080 https://example.com    # explicit proxy path
 ```
 
-Then the money shot — a harmless [EICAR test file](https://www.eicar.org/download-anti-malware-testfile/) over HTTPS. Expected: your download is blocked/chunked and the decision log records `INFECTED`; the verdict comes from the edge, not your local scanner.
+Then the end-to-end check: a harmless [EICAR test file](https://www.eicar.org/download-anti-malware-testfile/) over HTTPS. Expected: the download is blocked and the decision log records `INFECTED`; the verdict comes from the edge, not your local scanner.
 
 ```bash
 tail -f <log>/decisions.jsonl   # on the edge

@@ -40,7 +40,7 @@ services.opensase.policyBump = ./my/bump.txt;
 
 ## Swapping in a URL-categorization feed
 
-The addon's `request` hook reads the two lists into a verdict function. The seams are named: `classify(host) -> "pass" | "bump"`. Pointing `classify` at a live categorization API instead of static files is the intended v2 change — verdicts, logging, and scanning are unaffected.
+The addon's `request` hook reads the two lists into a verdict function: `classify(host) -> "pass" | "bump"`. Pointing `classify` at a live URL-categorization API instead of static files is the planned v2 change — verdicts, logging, and scanning are unaffected.
 
 ## Reading verdicts
 

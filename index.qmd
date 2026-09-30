@@ -18,29 +18,33 @@ subtitle: "Self-hosted SASE-style TLS inspection, declared end-to-end with Nix"
 [![Dependency Review](https://github.com/shsingh/opensase/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/dependency-review.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/shsingh/opensase?include_prereleases)](https://github.com/shsingh/opensase/releases)
 
-OpenSASE is an open, self-hosted take on the SASE edge: clients connect over **OpenVPN**, their traffic is **decrypted and re-encrypted by mitmproxy** according to a URL-category policy, every payload is scanned by **ClamAV**, and every verdict — splice, bump, clean, INFECTED — is written to a JSONL decision log you can pipe into anything.
+OpenSASE is an open, self-hosted SASE-style edge, deployed from one source of truth: a Nix flake. Clients connect over OpenVPN; an mitmproxy addon decrypts and re-encrypts traffic per a URL-category policy; every payload is scanned by ClamAV; every verdict — `splice`, `bump`, `clean`, `INFECTED` — is written to a JSONL decision log.
 
-Two ways to run it, from one repo:
+Two deployment paths:
 
 ::: { layout-ncol="2" }
-### Containers — no Nix needed
+### Containers — no Nix required
 
-Pre-built OCI images are published to GHCR by CI. Pull them and `docker compose up` on Linux, macOS, or Windows with any OCI runtime.
+Pre-built OCI images are published to GHCR by CI. Pull and `docker compose up` on Linux, macOS, or Windows, any OCI runtime.
 
 [Deploy with Docker →](docs/deployment.qmd)
 
 ### NixOS appliance
 
-The same stack as stock NixOS modules: boot it in QEMU, rebuild it on a real machine, or deploy with `nixos-rebuild --target-host`.
+The same stack as stock NixOS modules: build a QEMU VM, `nixos-rebuild` a physical machine, or deploy remotely with `--target-host`.
 
 [Deploy with Nix →](docs/deployment.qmd)
 :::
 
-## Why Nix end-to-end?
+### Kubernetes
 
-- **No floating bases.** Every image and appliance closure is a hash-pinned derivation from the same nixpkgs — what CI builds is byte-identical to what you build.
-- **Declare, don't assemble.** The appliance is `services.clamav` + `services.dnsmasq` + `services.openvpn` + a `services.opensase` module, not five hand-written Dockerfiles.
-- **Portability for free.** Non-Nix users never touch Nix: they pull the GHCR images `dockerTools` produced.
+Prebuilt manifests are not shipped yet (a kustomize follow-up is tracked). The four images are stateless OCI and stage on Kubernetes with the standard contract — `NET_ADMIN` on `openvpn`, `RWO` volumes per service, PKI injected before the VPN starts. See the [README Kubernetes section](https://github.com/shsingh/opensase#kubernetes) for the staging table and constraints.
+
+## Why Nix end-to-end
+
+- **No floating bases.** Every image and appliance closure is a hash-pinned derivation from one nixpkgs revision — CI builds what you build, byte-identical.
+- **Declare, don't assemble.** The appliance is `services.clamav` + `services.dnsmasq` + `services.openvpn` + `services.opensase`, not five hand-maintained Dockerfiles.
+- **Portability for non-Nix users.** Consumers pull the GHCR images `dockerTools` produced; no Nix anywhere in their path.
 
 ```{mermaid}
 flowchart LR
@@ -56,10 +60,12 @@ flowchart LR
 | Piece | State |
 |---|---|
 | NixOS flake (appliance + QEMU VMs) | `nix flake check --all-systems` clean |
-| OCI images via `dockerTools` | evaluating; release workflow in place |
-| GHCR publish + SBOM | wired on `v*` tags |
+| OCI images via `dockerTools` | built; release workflow in place |
+| GHCR publish + SBOM | wired on `v*` tags; first release pending |
 | Quarto docs site | this site |
+| OpenSSF Scorecard | workflow live; Best Practices badge pending registration |
+| Kubernetes | images stage cleanly; kustomize overlays TODO |
 | VM boot smoke test | CI TODO |
 | Live EICAR verification | TODO |
 
-Read the [architecture](docs/architecture.qmd), or go straight to [deployment](docs/deployment.qmd). Contributing, security policy and code of conduct: [CONTRIBUTING](https://github.com/shsingh/opensase/blob/master/CONTRIBUTING.md) · [SECURITY](https://github.com/shsingh/opensase/blob/master/SECURITY.md) · [CoC](https://github.com/shsingh/opensase/blob/master/CODE_OF_CONDUCT.md).
+Read the [architecture](docs/architecture.qmd) overview, or go to [deployment](docs/deployment.qmd). Contributing, security policy, code of conduct: [CONTRIBUTING](https://github.com/shsingh/opensase/blob/master/CONTRIBUTING.md) · [SECURITY](https://github.com/shsingh/opensase/blob/master/SECURITY.md) · [CoC](https://github.com/shsingh/opensase/blob/master/CODE_OF_CONDUCT.md).
