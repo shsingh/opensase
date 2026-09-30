@@ -4,6 +4,10 @@
 [![GitHub commit activity](https://img.shields.io/github/commit-activity/m/shsingh/opensase)](https://github.com/shsingh/opensase/graphs/commit-activity)
 [![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/shsingh/opensase)](https://libraries.io/github/shsingh/opensase)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/shsingh/opensase/master.svg)](https://results.pre-commit.ci/latest/github/shsingh/opensase/master)
+[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/shsingh/opensase?label=OpenSSF%20Scorecard&style=flat)](https://api.securityscorecards.dev/projects/github.com/shsingh/opensase)
+<!-- OpenSSF Best Practices: after registering opensase at https://www.bestpractices.dev, replace PROJECT_ID with the assigned number and uncomment.
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/PROJECT_ID/badge.svg)](https://www.bestpractices.dev/projects/PROJECT_ID)
+-->
 
 [![flake-check](https://github.com/shsingh/opensase/actions/workflows/flake-check.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/flake-check.yml)
 [![release-images](https://github.com/shsingh/opensase/actions/workflows/release-images.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/release-images.yml)
@@ -177,7 +181,9 @@ for reporting a vulnerability (**never a public issue**) — plus
 - [x] NixOS flake: appliance + QEMU VMs, `nix flake check --all-systems` clean
 - [x] Nix-built OCI images for all four services + GHCR release workflow
 - [x] Compose deployment for non-Nix users (Linux/macOS/Windows)
-- [ ] Quarto docs site → GitHub Pages
+- [x] Quarto docs site → GitHub Pages
+- [x] OpenSSF Scorecard workflow + badge (Best Practices registration manual, one-time)
+- [ ] First release: tag `v0.1.0` → images to GHCR + draft release
 - [ ] VM closure build + boot smoke test (CI, linux runner)
 - [ ] Live verdict verification (EICAR over HTTPS)
 - [ ] Tofu provider shapes (hcloud/aws)
