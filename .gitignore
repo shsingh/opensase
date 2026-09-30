@@ -1,0 +1,5 @@
+state/
+tofu/.terraform/
+tofu/.terraform.lock.hcl.bak
+*.tfstate*
+.env
