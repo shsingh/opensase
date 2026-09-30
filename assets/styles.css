@@ -9,3 +9,9 @@
   border-radius: 6px;
   padding: 1rem;
 }
+/* wide SVGs (mermaid flowcharts) don't stretch on mobile */
+img.figure-img,
+svg {
+  max-width: 100%;
+  height: auto;
+}
