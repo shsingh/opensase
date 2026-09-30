@@ -44,7 +44,7 @@ flowchart LR
     mitm -- "clamd INSTREAM scan" --> clam
     mitm -- "Every verdict" --> log
     mitm -- "clean traffic" --> net
-    mitm -- "INFECTED: blocked + logged" -.-> client
+    mitm -. "INFECTED: blocked + logged" .-> client
 ```
 
 Verdict order: **passlist** (splice, no decrypt) → **bumplist** (decrypt + scan) → default bump. Every verdict — `splice`, `bump`, `clean`, `INFECTED` — is written to `/data/log/decisions.jsonl`. The cICAP layer of the original design was dropped; the addon speaks clamd's INSTREAM protocol directly.
