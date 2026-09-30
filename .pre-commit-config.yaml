@@ -1,0 +1,33 @@
+# See https://pre-commit.com for more information
+# pre-commit.ci runs this on every PR; run locally with `nix develop -c pre-commit run -a`
+default_stages: [pre-commit]
+ci:
+  autofix_prs: false
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        # exclude legacy artifact material (certs/pems) and vendored easyrsa —
+        # rewriting certs by hook would corrupt them
+        exclude: '^(cicap/|squid/|clamav/|dnsmasq/|openvpn/)'
+      - id: end-of-file-fixer
+        exclude: '^(cicap/|squid/|clamav/|dnsmasq/|openvpn/|.*\.pem$|.*\.crt$|.*\.key$)'
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        exclude: '^(cicap/|squid/|clamav/|dnsmasq/|openvpn/)'
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+      - id: check-added-large-files
+      - id: detect-private-key
+        # legacy lab PKI under legacy dirs is committed test material (see README);
+        # the hook still guards everything we actively edit
+        exclude: '^(cicap/|squid/|clamav/|dnsmasq/|openvpn/)'
+
+  # shell scripts (vpn-init.sh etc); nix-side entrypoints come from the flake
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        exclude: '^(openvpn/|cicap/|squid/|clamav/)'   # legacy scripts keep their quirks

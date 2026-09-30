@@ -1,0 +1,62 @@
+---
+title: "Deployment"
+---
+
+Three paths, one source of truth (the flake). Pick by machine and appetite:
+
+```{mermaid}
+flowchart TD
+    start["I want OpenSASE running"] --> q{"Nix on this machine?"}
+    q -- "no / macOS / Windows" --> ghcr["Pull GHCR images<br/>docker compose up"]
+    q -- "yes" --> nix{"What kind of target?"}
+    nix -- "try it out" --> vm["nix build .#vm-x86_64<br/>run-opensase-vm"]
+    nix -- "real machine I control" --> rebuild["nixos-rebuild switch<br/>--flake .#opensase"]
+    nix -- "remote machines" --> target["nixos-rebuild switch<br/>--target-host root@ip"]
+    nix -- "want containers anyway" --> local["nix run .#load-images<br/>docker compose up"]
+```
+
+## Path 1 — Docker compose (no Nix, any OS)
+
+```bash
+git clone https://github.com/shsingh/opensase && cd opensase
+docker compose -p opensase up -d
+```
+
+Works on Linux, macOS (Docker Desktop), Windows (Docker Desktop or Podman). Images come from `ghcr.io/shsingh/opensase-*`.
+
+**One manual step before OpenVPN starts:** the `openvpn_priv` volume must contain a `server.conf` + PKI. With Nix available anywhere on your network:
+
+```bash
+nix run .#vpn-init          # writes ./state/openvpn
+docker volume create opensase_openvpn_priv
+docker run --rm -v "$PWD/state/openvpn:/src" -v opensase_openvpn_priv:/dst \
+  alpine cp -a /src/. /dst/
+docker compose -p opensase up -d --force-recreate openvpn
+```
+
+Container-only (no Nix anywhere): run EasyRSA inside the openvpn image against a scratch mount, or supply your own PKI — `server.conf` at `/data-priv/server.conf`.
+
+## Path 2 — NixOS appliance
+
+```bash
+git clone https://github.com/shsingh/opensase && cd opensase
+nix run .#vpn-init
+nixos-rebuild switch --flake .#opensase            # on the machine
+nixos-rebuild switch --flake .#opensase --target-host root@<ip>   # remotely
+```
+
+`nixosConfigurations.opensase` targets `aarch64-linux`, `.#opensase-x86_64` the other arch. The appliance module composes stock services — import `nix/appliance.nix` into an existing host config if you want the edge on a box that already runs NixOS.
+
+Cert material lives in `/var/lib/opensase/openvpn`; the `openvpn-opensase` unit has a `ConditionPathExists` on `server.conf`, so an un-bootstrapped machine boots clean and everything except the VPN comes up.
+
+## Path 3 — QEMU dev VM
+
+```bash
+nix build .#vm-x86_64 && ./result/bin/run-opensase-vm    # aarch64: .#vm-aarch64
+```
+
+Needs KVM — a Linux host. This is the "just let me see it" target: boots the full appliance, `decisions.jsonl` and all.
+
+## Cloud
+
+`tofu/` carries a pinned OpenTofu skeleton (`nix run .#tofu -- -chdir=tofu plan`). Provision with your provider of choice, deploy with `nixos-rebuild --target-host`; provider shapes are tracked as an open item.

@@ -1,0 +1,54 @@
+---
+title: "Policy"
+---
+
+URL-category policy is two text files, wired as NixOS options and baked into the container images:
+
+| File | Meaning |
+|---|---|
+| `nix/policy/pass.txt` | splice — never decrypted, flows through untouched |
+| `nix/policy/bump.txt` | decrypt + ClamAV scan always |
+
+Unmatched domains **default to bump** (fail closed). Order is passlist → bumplist → default.
+
+## Format
+
+One domain per line; the addon matches hostnames and SNI:
+
+```
+# nix/policy/pass.txt
+bank.example.com
+eu-identity-gov-portal.gov
+```
+
+```
+# nix/policy/bump.txt
+facebook.com
+*.facebook.com
+```
+
+## Overriding
+
+**NixOS appliance** — policy is a rebuild-time option:
+
+```nix
+services.opensase.policyPass = ./my/pass.txt;
+services.opensase.policyBump = ./my/bump.txt;
+```
+
+**Containers** — the lists are baked in per image tag. To change policy, rebuild the `opensase-mitmproxy` image with your lists (they are `nix/policy/*` store paths in `nix/images.nix`), or edit the addon invocation in the entrypoint to point at mounted files.
+
+## Swapping in a URL-categorization feed
+
+The addon's `request` hook reads the two lists into a verdict function. The seams are named: `classify(host) -> "pass" | "bump"`. Pointing `classify` at a live categorization API instead of static files is the intended v2 change — verdicts, logging, and scanning are unaffected.
+
+## Reading verdicts
+
+```bash
+docker compose -p opensase exec mitmproxy tail -f /data/log/decisions.jsonl
+# appliance:
+journalctl -u opensase-proxy -f
+tail -f /var/lib/opensase/log/decisions.jsonl
+```
+
+Each line: timestamp, host, category, action (`splice`/`bump`), scan verdict (`clean`/`INFECTED`).

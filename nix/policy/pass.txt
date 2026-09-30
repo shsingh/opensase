@@ -1,0 +1,5 @@
+# Domains spliced through (no TLS decrypt), one per line.
+# Suffix matches include subdomains.
+#
+example.com
+nixos.org

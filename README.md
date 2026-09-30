@@ -1,153 +1,183 @@
-# Open Secure Access Service Edge
+# OpenSASE
 
-The purpose of this project is to build SASE components using OSS tools for testing.
+[![License](https://img.shields.io/github/license/shsingh/opensase)](https://github.com/shsingh/opensase/blob/master/LICENSE)
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/shsingh/opensase)](https://github.com/shsingh/opensase/graphs/commit-activity)
+[![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/shsingh/opensase)](https://libraries.io/github/shsingh/opensase)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/shsingh/opensase/master.svg)](https://results.pre-commit.ci/latest/github/shsingh/opensase/master)
 
-It will currently build Docker containers for OpenVPN and transparent Proxy (Squid+C-ICAP+ClamAV)
+[![flake-check](https://github.com/shsingh/opensase/actions/workflows/flake-check.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/flake-check.yml)
+[![release-images](https://github.com/shsingh/opensase/actions/workflows/release-images.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/release-images.yml)
+[![pages](https://github.com/shsingh/opensase/actions/workflows/pages.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/pages.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/shsingh/opensase?include_prereleases)](https://github.com/shsingh/opensase/releases)
 
-OpenSASE creates several containers to server as VPN server with explicit and transparent proxy capability.
-The OpenVPN container will forward all HTTP (Port 80) / HTTPS (Port 443) traffic to the Squid container. All other VPN traffic will be SNAT'd.
-Squid is configured to scan all traffic via ClamAV for Virii and against Google Safebrowsing database. Additionally the Shallalist blacklist is configured.
-Dnsmasq has been recently added to the landscape to ensure Squid and VPN clients will use the same DNS server, and furthermore it allows resolution of Docker network hostnames.
+Open, self-hosted **S**ecure **A**ccess **S**ervice **E**dge components built from OSS tools for testing — declared end-to-end with [Nix](https://nixos.org/).
 
-> It has been tested on Windows OpenVPN client as well as IOS 11
+OpenSASE is a TLS-inspection edge: clients connect over **OpenVPN**, traffic is decrypted and re-encrypted by **mitmproxy** based on a URL-category policy, every payload is scanned by **ClamAV**, and every verdict is written to a JSONL decision log. It runs two ways from one repo:
 
-```
-+----------------------------------------------------------------------------+
-|                                                                            |
-|                                     3128/tcp                               |
-|   +-------------+ 80/tcp            3129/tcp TPROXY http  +------------+   |
-|   |             | 443/tcp           3130/tcp TPROXY https |            |   |
-|   |   openvpn   +----------------------------------------->   squid    |   |
-|   |             |                                         |            |   |
-|   +------^------+                                         +------+-----+   |
-|          | 1194/udp                                              |         |
-|          |                                                       |         |
-|          |                                              1344/tcp |         |
-|          |       +------------+                           +------v-----+   |
-|          |       |            |                           |            |   |
-|          |       |   clamav   <---------------------------+   cicap    |   |
-|          |       |            | 3310/tcp                  |            |   |
-|          |       +------------+                           +------------+   |
-|          |                                                                 |
-|          | 5443/udp                                                        |
-+-------------------------------------------------------------- Docker-host -+
-           |
-           |
-  +-----------------------------------------------------------------------+
-  |        |                                                              |
-  |        |                                                              |
-  |  +-----+------+                                                       |
-  |  | VPN client |                                                       |
-  |  +------------+                                                       |
-  |                                                                       |
-  |                                                                       |
-  +-------------------------------------------------------------Internet--+
+1. **Containers (no Nix needed)** — pull pre-built, Nix-built OCI images from GHCR and `docker compose up` on Linux, macOS, or Windows.
+2. **Nix / NixOS (the appliance)** — the same stack as stock NixOS modules: boot it in QEMU, rebuild it on a real machine, or deploy with `nixos-rebuild --target-host`.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    client["VPN client<br/>(any)"]
+    subgraph edge["OpenSASE edge"]
+        vpn["openvpn<br/>udp/5443"]
+        mitm["mitmproxy<br/>tcp/8080 explicit · TPROXY 80/443 transparent<br/>splice or bump per URL category"]
+        clam["clamav (clamd)<br/>tcp/3310 INSTREAM"]
+        dns["dnsmasq<br/>udp+tcp/53"]
+        log[("decision log<br/>decisions.jsonl")]
+    end
+    net((Internet))
+
+    client -- "OpenVPN (TLS 1.2, tls-crypt)" --> vpn
+    vpn --> dns
+    vpn -- "HTTP/HTTPS" --> mitm
+    mitm -- "clamd INSTREAM scan" --> clam
+    mitm -- "Every verdict" --> log
+    mitm -- "clean traffic" --> net
+    mitm -- "INFECTED: blocked + logged" -.-> client
 ```
 
-## Quick Start
+Verdict order: **passlist** (splice — no decrypt) → **bumplist** (decrypt + scan) → default bump. Every verdict — `splice`, `bump`, `clean`, `INFECTED` — lands in `/data/log/decisions.jsonl`. The cICAP layer of the original design was dropped: the mitmproxy addon talks to clamd directly over the INSTREAM protocol.
 
-> Requires [Docker](https://docs.docker.com/) 17.06 or later, and [Docker Compose](https://docs.docker.com/compose/) 1.13.0 or later
+## Release artifacts
 
-### Build containers
+Everything is built with Nix — there are no Dockerfile builds in this repo. CI ([`.github/workflows/release-images.yml`](.github/workflows/release-images.yml)) builds each image with `dockerTools.buildLayeredImage` from the flake and pushes it to GHCR on every `v*` tag, with an SPDX SBOM per image:
 
-* Obtain the GIT structure (as [.zip](https://github.com/shsingh/opensase/archive/master.zip) or use [GIT](https://github.com/shsingh/opensase.git))
-* Change to the opensase directory, then build:
+- `ghcr.io/shsingh/opensase-dnsmasq` — DNS for VPN clients
+- `ghcr.io/shsingh/opensase-clamav` — clamd scanner (DB bootstraps on first run, `SKIP_FRESHCLAM=1` to skip)
+- `ghcr.io/shsingh/opensase-mitmproxy` — decrypt/re-encrypt core; addon + policy lists baked into the image
+- `ghcr.io/shsingh/opensase-openvpn` — VPN server (config + certs supplied by you)
+
+Byte-identical images build from the flake: `nix run .#load-images`.
+
+## Releases
+
+Releases are **GPG-signed tags** — the release workflow refuses unsigned tags (it verifies with `git tag -v` before publishing):
+
 ```bash
-docker-compose -p opensase build
+git tag -s v0.1.0 -m "OpenSASE v0.1.0: initial Nix-built container release"
+git push origin v0.1.0
 ```
 
-### Start containers
+CI then matrix-builds the four images on Linux runners, publishes them to GHCR (`:latest` + the version), and opens a **draft release** with generated notes: an image-digest table, the commit changelog since the previous tag, SPDX SBOMs as release assets, and a 60-second compose deploy snippet. Review and publish the draft to ship.
 
-* Start service once, to build volumes, networks
+## Quick start — Docker (no Nix required)
+
+Any OCI runtime: Docker Desktop / Engine on **Linux, macOS, Windows**, or Podman.
+
 ```bash
-docker-compose -p opensase up
+git clone https://github.com/shsingh/opensase && cd opensase
+docker compose -p opensase up -d
 ```
 
-> Note: Make sure to read the output, and if everything went well, the containers keep running
+The OpenVPN server needs a PKI before it will start. Two options:
 
-## Setting up Clients
-
-* Ensure DNS entry for vpn.f5labs.dev for localhost (testing)
-
-* Start OpenVPN client
 ```bash
-sudo openvpn openvpn/client.f5labs.dev.ovpn
+# Option A: with Nix on the machine (one-time CA bootstrap into ./state/openvpn)
+nix run .#vpn-init
+
+# Option B: container-only bootstrap
+# use the openvpn container with EasyRSA mounted, or drop your own
+# server.conf + PKI into the `openvpn_priv` volume
 ```
 
-## Configure Explicit Proxy
-* Configuring proxy explicitly is definetly recommended. Squid bump works generally more reliable with explicit configured proxy.
-* Hint: Use Foxyproxy (Firefox) or similar Proxy switcher utility, to simply turn Proxy on when VPN is enabled.
-    * Proxy: IP 192.168.50.5:3128
+then copy `./state/openvpn/*` into the `openvpn_priv` volume and restart the `openvpn` service. Point a client at `udp/5443` and an explicit proxy at `<host>:8080`.
 
-### Windows VPN client
+## Quick start — Nix / NixOS
 
-* OpenVPN on Windows is easy to use. Just copy the *.ovpn file over to C:\Program Files\OpenVPN\config (adjust if needed)
-* Start OpenVPN, you will probably Admin permissions or else the Tunnel will not be properly created.
-* Import Squid CA into Certificate Stores
-    - create file squidCA.crt with content you saved
-    - double click the file (info window should be presented)
-    - click "Install Certificate"
-    - pick local user as install destination
-    - select "Trusted Root Certification Authorities" as store
-    - verify in Internet Explorer that e.g. on https://www.google.com no certificate error is popping up anymore
-      (Note: Google Chrome is using also the Windows store)
-    - Firefox uses its own Cert store (Settings -> Extended -> Certificates)
+Install [Nix](https://nixos.org/download) (any Linux distro, or NixOS), then:
 
-### IOS
-
-* Application & VPN Profile
-    - Install on your device [OpenVPN Connect](https://itunes.apple.com/de/app/openvpn-connect/id590379981)
-    - Use Itunes put the *.ovpn file in the OpenVPN Connect files. The application will then offer to import the profile 
-* Squid CA to prevent SSL errors
-    - Store CA as PEM (.crt) in Dropbox or Icloud and open the file. There should be a popup presenting the possibility to import the certificate and set it to trusted. 
-    - Alternatively install the iPhone Configuration Utility on [MacOS](https://itunes.apple.com/us/app/apple-configurator/id434433123?mt=12) / [Windows](http://download.cnet.com/iPhone-Configuration-Utility-for-Windows/3000-20432_4-10969175.html)
-        * Create a profile and add the Squid CA to the certificate store. Then assign the profile to your device.
-
-### Verification on Client
-
-After the tunnel has been established, make sure it is working:
-
-* Ping the VPN server:
 ```bash
-ping 10.128.81.1
+git clone https://github.com/shsingh/opensase && cd opensase
+
+# 1. Bootstrap the OpenVPN CA + certs (gitignored ./state)
+nix run .#vpn-init
+
+# 2a. Try it in a QEMU VM (Linux host):
+nix build .#vm-x86_64 && ./result/bin/run-opensase-vm      # aarch64: .#vm-aarch64
+
+# 2b. Or deploy the appliance to a real machine (from it, or with --target-host):
+nixos-rebuild switch --flake .#opensase
+nixos-rebuild switch --flake .#opensase --target-host root@<ip>
+
+# 2c. Or run the container stack, images built locally:
+nix run .#load-images && docker compose -p opensase up -d
 ```
-* Check Transparent Proxy is working by downloading a (harmless) [Eicar Test Virus](http://www.eicar.org/85-0-Download.html)
-    > Note: Try the different variants, SSL should also work. If it works you will see a message from Squid/ClamAV, and not from your local Virus Scanner.
 
-## Miscellaneous
+NixOS users can also import `nix/appliance.nix` into an existing host config — the appliance composes from stock modules (`services.clamav`, `services.dnsmasq`, `services.openvpn`) plus the `services.opensase` module.
 
-### Choice for CentOS
+## Module options
 
-* I decided to use CentOS whenver flexibility is required (image size ~350MB)
-* Atomic Linux is used for Dnsmasq (image size ~5MB)
+```nix
+services.opensase.enable = true;
+services.opensase.mitmMode = "regular";   # or "transparent" (TPROXY 80/443)
+services.opensase.listenPort = 8080;
+services.opensase.policyPass = ./my/pass.txt;
+services.opensase.policyBump  = ./my/bump.txt;
+services.opensase.decisionLog = "/var/lib/opensase/log/decisions.jsonl";
+```
 
-### Security Aspects
+## Policy
 
-* Each application has its own container, thus high isolation
-* Applications run non-root
-* VPN CA is kept in a separate Docker Volume. Password should be kept at a secure location
-* VPN is using TLS 1.2 with Elliptic Curve certificates, DHE and tls-crypt channel.
-* Keys for OpenVPN and squid are stored in their respective directly --> *DO NOT USE THIS IN PRODUCTION*
+`nix/policy/pass.txt` — domains spliced through (never decrypted)
+`nix/policy/bump.txt` — domains always decrypted and scanned
 
-### Blacklist
-* The blacklists can be configured by adjusting the Squid containers ENV var SQUIDGUARD_FILTER (list of space separated categories)
-    * Check a list of supported [Shallalist Categories](http://www.shallalist.de/categories.html)
+Both are `types.path` options, overridable at rebuild time; in the container images they are baked in per tag (rebuild the image or point compose at your own image to change policy).
 
-### Skipping SSL Bump
-* SSL bump (man in the middle) can be disabled for defined sites by modifying /data/squid/nobump.txt.
-    * The file is located on the Docker 'opensase_data' volume
+## Client setup
 
-### Cleanup
-* In case you want to remove the Docker containers, networks and volumes, the following steps can be used after stopping the services:
+### Windows
+- Copy the generated `.ovpn` profile into OpenVPN's config directory and connect as Administrator (the tunnel needs it).
+- Trust the mitmproxy CA: double-click the `.crt`, install for the **local user**, pick **Trusted Root Certification Authorities** (Chrome and Edge use this store; Firefox has its own under Settings → Certificates).
+
+### macOS
+- Import the profile into OpenVPN Connect (or tunnelblick), trust the mitmproxy CA into the System keychain.
+
+### iOS
+- OpenVPN Connect → import the `.ovpn`; CA: open the `.crt` from Files and trust it in the profile.
+
+### Verify
+After the tunnel is up:
+
 ```bash
-docker rm opensase_clamav_1 opensase_squid_1 opensase_cicap_1 opensase_openvpn_1 opensase_dnsmasq_1 ; \
-docker rmi opensase_clamav opensase_squid opensase_cicap opensase_openvpn opensase_dnsmasq ; \
-docker volume rm opensase_squid_priv ; docker volume rm opensase_openvpn_priv ; docker volume rm opensase_data ; \
-docker network rm opensase_main ; \
-docker image prune
+ping <appliance>          # tunnel up
+curl -x http://<appliance>:8080 https://example.com   # explicit-proxy path
 ```
 
---
+Download a harmless [EICAR test file](https://www.eicar.org/download-anti-malware-testfile/) over HTTPS — you should see an `INFECTED` verdict in the decision log, not a local scanner alert.
 
-### Credits: 
-The initial build for this was inspired from the work done by [@sweitzel](https://github.com/sweitzel) on the [docker-vpnbox](https://github.com/sweitzel/docker-vpnbox) project
+## Security notes
+
+- One process per container/image; the appliance runs services under dedicated non-root users.
+- The VPN CA lives in its own volume — keep it safe.
+- TLS 1.2, elliptic-curve certificates, DHE, tls-crypt.
+- **Do not run this in production as-is** — it is a lab/testing appliance. Decide your own bump/splice policy carefully: TLS interception is a high-value target.
+
+## Docs
+
+Full documentation site (architecture, deployment paths, policy, CI): **https://shsingh.github.io/opensase/** — built with Quarto from `docs/`.
+
+## Legacy Docker files
+
+The original CentOS 7 Dockerfiles (`dnsmasq/`, `clamav/`, `cicap/`, `squid/`, `openvpn/`) are kept for archaeology only — nothing builds from them (the CentOS 7 mirrors are gone). The compose file now consumes the GHCR images above.
+
+## Status
+
+- [x] NixOS flake: appliance + QEMU VMs, `nix flake check --all-systems` clean
+- [x] Nix-built OCI images for all four services + GHCR release workflow
+- [x] Compose deployment for non-Nix users (Linux/macOS/Windows)
+- [ ] Quarto docs site → GitHub Pages
+- [ ] VM closure build + boot smoke test (CI, linux runner)
+- [ ] Live verdict verification (EICAR over HTTPS)
+- [ ] Tofu provider shapes (hcloud/aws)
+
+## Credits
+
+The initial build was inspired by [@sweitzel](https://github.com/sweitzel)'s [docker-vpnbox](https://github.com/sweitzel/docker-vpnbox) project.
+
+## License
+
+[GPL-3.0](LICENSE) (inherited from the original project).

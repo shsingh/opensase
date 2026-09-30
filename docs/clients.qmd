@@ -1,0 +1,49 @@
+---
+title: "Client setup"
+---
+
+After the tunnel and CA are in place, clients need two things: the OpenVPN profile and the mitmproxy CA (unless you only use passlisted domains).
+
+## Get the pieces
+
+```bash
+# from the bootstrap dir (nix path) or the openvpn_priv volume (compose path)
+ls state/openvpn/          # client .ovpn profiles
+```
+
+The CA (`server.crt` / the cert of the bump CA) is what browsers must trust — TLS interception resigns every non-passlisted site.
+
+## Windows
+
+1. Copy the `.ovpn` into OpenVPN's config directory; connect **as Administrator** (the tunnel needs it).
+2. Trust the CA: double-click the `.crt` → Install Certificate → **Current User** → **Trusted Root Certification Authorities**. Chrome and Edge use this store.
+3. Firefox: Settings → Privacy → Certificates → Import, then trust for websites.
+
+Verify: browsing `https://www.google.com` shows no certificate error once connected through the edge.
+
+## macOS
+
+1. Import the profile (OpenVPN Connect or Tunnelblick).
+2. Add the CA to the **System** keychain and mark it trusted for TLS.
+
+## iOS
+
+1. OpenVPN Connect → share the `.ovpn` file to it → import.
+2. CA: open the `.crt` from Files, install the profile, then Settings → General → About → Certificate Trust Settings → enable it.
+
+## Verify the pipeline
+
+```bash
+ping <appliance>                                # tunnel up
+curl -x http://<appliance>:8080 https://example.com    # explicit proxy path
+```
+
+Then the money shot — a harmless [EICAR test file](https://www.eicar.org/download-anti-malware-testfile/) over HTTPS. Expected: your download is blocked/chunked and the decision log records `INFECTED`; the verdict comes from the edge, not your local scanner.
+
+```bash
+tail -f <log>/decisions.jsonl   # on the edge
+```
+
+## Proxy-only mode (no VPN)
+
+The mitmproxy also serves an explicit proxy on `8080` — point any client (e.g. [FoxyProxy](https://addons.mozilla.org/firefox/addon/foxyproxy-standard/)) at `http://<edge>:8080` without the tunnel at all. Useful for testing verdicts before wiring up OpenVPN.

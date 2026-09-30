@@ -1,0 +1,57 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - "index.qmd"
+    - "docs/*.qmd"
+
+website:
+  title: "OpenSASE"
+  description: "Self-hosted SASE-style TLS inspection: OpenVPN + mitmproxy + ClamAV, declared end-to-end with Nix. Ships as OCI containers (no Nix needed) or a NixOS appliance."
+  page-navigation: true
+  site-url: https://shsingh.github.io/opensase/
+  repo-url: https://github.com/shsingh/opensase
+  repo-branch: master
+  repo-actions: [edit, issue]
+  open-graph: true
+  search:
+    location: navbar
+    type: overlay
+  navbar:
+    background: dark
+    pinned: true
+    left:
+      - href: index.qmd
+        text: Home
+      - href: docs/architecture.qmd
+        text: Architecture
+      - href: docs/deployment.qmd
+        text: Deployment
+      - href: docs/policy.qmd
+        text: Policy
+      - href: docs/clients.qmd
+        text: Clients
+      - href: docs/ci-release.qmd
+        text: CI & Release
+    right:
+      - icon: github
+        href: https://github.com/shsingh/opensase
+  sidebar:
+    style: floating
+    collapsed: false
+    contents:
+      - index.qmd
+      - section: "Docs"
+        contents:
+          - docs/architecture.qmd
+          - docs/deployment.qmd
+          - docs/policy.qmd
+          - docs/clients.qmd
+          - docs/ci-release.qmd
+
+format:
+  html:
+    theme: cosmo
+    css: assets/styles.css
+    toc: true
+    code-copy: true

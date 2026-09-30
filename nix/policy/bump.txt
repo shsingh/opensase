@@ -1,0 +1,7 @@
+# Domains always decrypted (TLS bump), one per line.
+# Suffix matches include subdomains.
+#
+# Malware-campaign-heavy categories live here in v1; a URL categorization
+# feed replaces this static list later.
+#
+testsafebrowsing.appspot.com
