@@ -43,6 +43,17 @@ Everything is built with Nix — there are no Dockerfile builds in this repo. CI
 
 Byte-identical images build from the flake: `nix run .#load-images`.
 
+## Releases
+
+Releases are **GPG-signed tags** — the release workflow refuses unsigned tags (it verifies with `git tag -v` before publishing):
+
+```bash
+git tag -s v0.1.0 -m "OpenSASE v0.1.0: initial Nix-built container release"
+git push origin v0.1.0
+```
+
+CI then matrix-builds the four images on Linux runners, publishes them to GHCR (`:latest` + the version), and opens a **draft release** with generated notes: an image-digest table, the commit changelog since the previous tag, SPDX SBOMs as release assets, and a 60-second compose deploy snippet. Review and publish the draft to ship.
+
 ## Quick start — Docker (no Nix required)
 
 Any OCI runtime: Docker Desktop / Engine on **Linux, macOS, Windows**, or Podman.

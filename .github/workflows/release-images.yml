@@ -5,8 +5,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  packages: write
+  contents: write        # draft release + release notes + SBOM assets
+  packages: write        # push images to GHCR
 
 jobs:
   build-push:
@@ -16,12 +16,13 @@ jobs:
         image: [dnsmasq, clamav, mitmproxy, openvpn]
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: DeterminateSystems/nix-installer-action@v16
 
       - name: Log in to GHCR
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build OCI image from flake
         run: nix build ".#image-${{ matrix.image }}" --out-link result-img
@@ -36,10 +37,97 @@ jobs:
             docker push "ghcr.io/${{ github.repository_owner }}/opensase-${{ matrix.image }}:$tag"
           done
 
-      # Supply-chain hygiene: SBOM + provenance artifact for each release tag.
-      - name: Generate SBOM
+      - name: Record pushed digest
+        run: |
+          docker inspect "ghcr.io/${{ github.repository_owner }}/opensase-${{ matrix.image }}:${GITHUB_REF_NAME#v}" \
+            --format '{{index .RepoDigests 0}}' > "digests-${{ matrix.image }}.txt"
+          cat "digests-${{ matrix.image }}.txt"
+
+      # Supply-chain hygiene: SBOM artifact for each release tag.
+      - name: Generate SBOM (SPDX)
         uses: anchore/sbom-action@v0
         with:
           image: "ghcr.io/${{ github.repository_owner }}/opensase-${{ matrix.image }}:${{ github.ref_name }}"
           format: spdx-json
           artifact-name: "sbom-opensase-${{ matrix.image }}.spdx.json"
+
+      - name: Upload digest for release-notes job
+        uses: actions/upload-artifact@v4
+        with:
+          name: "digests-${{ matrix.image }}"
+          path: "digests-${{ matrix.image }}.txt"
+          retention-days: 1
+
+  release-notes:
+    needs: [build-push]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history: tag ranges + signed tags
+          persist-credentials: false
+
+      - name: Download build artifacts (digests + SBOMs)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-opensase-*'
+          path: assets
+          merge-multiple: true
+
+      - name: Verify tags are signed (fail the release otherwise)
+        run: |
+          git tag -v "${GITHUB_REF_NAME}" 2>&1 | grep -q "Good signature" \
+            || { echo "::error::tag ${GITHUB_REF_NAME} is not a verified GPG-signed tag"; exit 1; }
+
+      - name: Build release notes
+        run: |
+          PREV="$(git tag --sort=-creatordate | grep -v "^${GITHUB_REF_NAME}$" | sed -n 1p || true)"
+          {
+            echo "## OpenSASE ${GITHUB_REF_NAME}"
+            echo
+            echo "SASE-style TLS inspection edge: OpenVPN → mitmproxy (decrypt/re-encrypt on URL category) → ClamAV → decision log."
+            echo
+            echo "### Nix-built OCI images — pull and \`docker compose up\` (no Nix needed)"
+            echo
+            echo "| Image | Version tag | Digest |"
+            echo "|---|---|---|"
+            for img in dnsmasq clamav mitmproxy openvpn; do
+              d="assets/digests-${img}.txt"
+              digest="$(cat "$d" 2>/dev/null || echo '—')"
+              echo "| \`opensase-${img}\` | \`${GITHUB_REF_NAME#v}\` | \`$(basename "$digest")\` |"
+            done
+            echo
+            echo "### What changed"
+            if [ -n "$PREV" ]; then
+              git log --format='- %s (%h)' "${PREV}..${GITHUB_REF_NAME}"
+            else
+              git log --format='- %s (%h)' "${GITHUB_REF_NAME}"
+            fi
+            echo
+            echo "### Deploy in ~60 seconds"
+            echo '```bash'
+            echo "git clone --depth 1 --branch ${GITHUB_REF_NAME} https://github.com/shsingh/opensase && cd opensase"
+            echo "docker compose -p opensase up -d    # mitmproxy :8080 · openvpn udp/5443"
+            echo '```'
+            echo
+            echo "### Verify the images"
+            echo "- digests above (\`docker buildx imagetools inspect <ref>\`)"
+            echo "- SBOMs (SPDX) attached as release assets below"
+            echo
+            echo "> **Nix users:** \`nix run .#load-images\` builds the byte-identical images from the flake — no pull needed."
+            echo "> **Lab appliance — DO NOT run unmodified in production.**"
+            echo
+            echo "Docs: https://shsingh.github.io/opensase/"
+          } > release-notes.md
+          cat release-notes.md
+
+      - name: Create draft release (signed tag, notes, SBOM assets)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --draft \
+            --verify-tag \
+            --title "OpenSASE ${GITHUB_REF_NAME}" \
+            --notes-file release-notes.md \
+            assets/*.spdx.json

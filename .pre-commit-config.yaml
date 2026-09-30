@@ -1,0 +1,34 @@
+# See https://pre-commit.com for more information
+# pre-commit.ci runs this on every PR; run locally with `nix develop -c pre-commit run -a`
+default_stages: [pre-commit]
+ci:
+  autofix_prs: false
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '(^|/)(LICENSE|.*\.md)$'
+      - id: end-of-file-fixer
+        exclude: '(^|/)(LICENSE|.*\.md)$'
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+        exclude: '^nix/.*\.nix$'
+      - id: check-json
+      - id: check-added-large-files
+      - id: detect-private-key
+
+  # nix: flake formatting keeps diffs reviewable
+  - repo: https://github.com/NixOS/nixfmt
+    rev: master
+    hooks:
+      - id: nixfmt
+
+  # shell scripts under nix/ (vpn-init.sh, image entrypoints come from the flake)
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        files: '\.sh$'

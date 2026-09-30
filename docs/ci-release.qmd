@@ -30,11 +30,21 @@ nix run .#load-images     # build all four locally + docker load (linux host)
 
 ## Publishing a release
 
-```bash
-git tag v0.1.0 && git push origin v0.1.0   # CI builds, SBOMs, pushes
+Releases are **GPG-signed tags** — the workflow verifies the tag (`git tag -v`) and fails before publishing anything unsigned:
+
+```{.bash}
+git tag -s v0.1.0 -m "OpenSASE v0.1.0: initial Nix-built container release"
+git push origin v0.1.0
 ```
 
-Consumers then need nothing but an OCI runtime — the whole deployment path for non-Nix users starts at `docker compose up`.
+The workflow matrix-builds the four images, pushes to GHCR (`:latest` + the version), and opens a **draft release** whose notes are generated on the runner:
+
+- digest table for all four images
+- commit changelog since the previous tag
+- SPDX SBOMs attached as release assets
+- 60-second compose deploy snippet
+
+Review and publish the draft to ship. Consumers need nothing but an OCI runtime.
 
 ## Docs site
 
