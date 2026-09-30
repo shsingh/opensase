@@ -11,6 +11,7 @@ subtitle: "Self-hosted SASE-style TLS inspection, declared end-to-end with Nix"
 [![flake-check](https://github.com/shsingh/opensase/actions/workflows/flake-check.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/flake-check.yml)
 [![release-images](https://github.com/shsingh/opensase/actions/workflows/release-images.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/release-images.yml)
 [![pages](https://github.com/shsingh/opensase/actions/workflows/pages.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/pages.yml)
+[![Dependency Review](https://github.com/shsingh/opensase/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/dependency-review.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/shsingh/opensase?include_prereleases)](https://github.com/shsingh/opensase/releases)
 
 OpenSASE is an open, self-hosted take on the SASE edge: clients connect over **OpenVPN**, their traffic is **decrypted and re-encrypted by mitmproxy** according to a URL-category policy, every payload is scanned by **ClamAV**, and every verdict — splice, bump, clean, INFECTED — is written to a JSONL decision log you can pipe into anything.
@@ -57,4 +58,4 @@ flowchart LR
 | VM boot smoke test | CI TODO |
 | Live EICAR verification | TODO |
 
-Read the [architecture](docs/architecture.qmd), or go straight to [deployment](docs/deployment.qmd).
+Read the [architecture](docs/architecture.qmd), or go straight to [deployment](docs/deployment.qmd). Contributing, security policy and code of conduct: [CONTRIBUTING](https://github.com/shsingh/opensase/blob/master/CONTRIBUTING.md) · [SECURITY](https://github.com/shsingh/opensase/blob/master/SECURITY.md) · [CoC](https://github.com/shsingh/opensase/blob/master/CODE_OF_CONDUCT.md).

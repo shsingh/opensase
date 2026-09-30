@@ -8,6 +8,7 @@
 [![flake-check](https://github.com/shsingh/opensase/actions/workflows/flake-check.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/flake-check.yml)
 [![release-images](https://github.com/shsingh/opensase/actions/workflows/release-images.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/release-images.yml)
 [![pages](https://github.com/shsingh/opensase/actions/workflows/pages.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/pages.yml)
+[![Dependency Review](https://github.com/shsingh/opensase/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/dependency-review.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/shsingh/opensase?include_prereleases)](https://github.com/shsingh/opensase/releases)
 
 Open, self-hosted **S**ecure **A**ccess **S**ervice **E**dge components built from OSS tools for testing — declared end-to-end with [Nix](https://nixos.org/).
@@ -163,6 +164,13 @@ Full documentation site (architecture, deployment paths, policy, CI): **https://
 ## Legacy Docker files
 
 The original CentOS 7 Dockerfiles (`dnsmasq/`, `clamav/`, `cicap/`, `squid/`, `openvpn/`) are kept for archaeology only — nothing builds from them (the CentOS 7 mirrors are gone). The compose file now consumes the GHCR images above.
+
+## Contributing & security
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the working agreement (branching,
+conventional signed commits, acceptance suite) and [SECURITY.md](SECURITY.md)
+for reporting a vulnerability (**never a public issue**) — plus
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## Status
 
