@@ -3,7 +3,6 @@
 default_stages: [pre-commit]
 ci:
   autofix_prs: false
-  skip: [nixfmt]          # nix fmt (nixfmt-tree) runs in the dev shell/local; ci env has no nix
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
