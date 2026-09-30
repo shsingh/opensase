@@ -1,0 +1,50 @@
+---
+title: "OpenSASE"
+subtitle: "Self-hosted SASE-style TLS inspection, declared end-to-end with Nix"
+---
+
+OpenSASE is an open, self-hosted take on the SASE edge: clients connect over **OpenVPN**, their traffic is **decrypted and re-encrypted by mitmproxy** according to a URL-category policy, every payload is scanned by **ClamAV**, and every verdict — splice, bump, clean, INFECTED — is written to a JSONL decision log you can pipe into anything.
+
+Two ways to run it, from one repo:
+
+::: { layout-ncol="2" }
+### Containers — no Nix needed
+
+Pre-built OCI images are published to GHCR by CI. Pull them and `docker compose up` on Linux, macOS, or Windows with any OCI runtime.
+
+[Deploy with Docker →](docs/deployment.qmd)
+
+### NixOS appliance
+
+The same stack as stock NixOS modules: boot it in QEMU, rebuild it on a real machine, or deploy with `nixos-rebuild --target-host`.
+
+[Deploy with Nix →](docs/deployment.qmd)
+:::
+
+## Why Nix end-to-end?
+
+- **No floating bases.** Every image and appliance closure is a hash-pinned derivation from the same nixpkgs — what CI builds is byte-identical to what you build.
+- **Declare, don't assemble.** The appliance is `services.clamav` + `services.dnsmasq` + `services.openvpn` + a `services.opensase` module, not five hand-written Dockerfiles.
+- **Portability for free.** Non-Nix users never touch Nix: they pull the GHCR images `dockerTools` produced.
+
+```{mermaid}
+flowchart LR
+    client["VPN client"] --> vpn["openvpn udp/5443"]
+    vpn --> mitm["mitmproxy<br/>splice | bump per URL category"]
+    mitm --> clam["clamd :3310"]
+    mitm --> log[("decisions.jsonl")]
+    mitm --> net((Internet))
+```
+
+## Status
+
+| Piece | State |
+|---|---|
+| NixOS flake (appliance + QEMU VMs) | `nix flake check --all-systems` clean |
+| OCI images via `dockerTools` | evaluating; release workflow in place |
+| GHCR publish + SBOM | wired on `v*` tags |
+| Quarto docs site | this site |
+| VM boot smoke test | CI TODO |
+| Live EICAR verification | TODO |
+
+Read the [architecture](docs/architecture.qmd), or go straight to [deployment](docs/deployment.qmd).

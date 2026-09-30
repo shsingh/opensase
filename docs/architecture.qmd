@@ -1,0 +1,57 @@
+---
+title: "Architecture"
+---
+
+## Components
+
+```{mermaid}
+flowchart LR
+    client["VPN client<br/>(Windows / macOS / iOS / Linux)"]
+
+    subgraph edge["OpenSASE edge — one host or one compose network"]
+        vpn["openvpn<br/>udp/5443<br/>TLS 1.2 · EC certs · tls-crypt"]
+        dns["dnsmasq<br/>udp+tcp/53<br/>shared DNS for clients"]
+        mitm["mitmproxy<br/>8080 explicit · TPROXY 80/443 transparent<br/>splice or bump per URL category<br/>clamd INSTREAM"]
+        clam["clamav (clamd)<br/>tcp/3310<br/>verdicts"]
+        log[("decisions.jsonl<br/>every verdict")]
+    end
+
+    net((Internet))
+
+    client -- "OpenVPN" --> vpn
+    vpn -- "DNS" --> dns
+    vpn -- "HTTP/HTTPS" --> mitm
+    mitm -- "INSTREAM scan" --> clam
+    mitm -- "verdict" --> log
+    mitm -- "clean" --> net
+    mitm -. "INFECTED: blocked" .-> client
+```
+
+## Verdict pipeline
+
+For every HTTP(S) request the mitmproxy addon evaluates, in order:
+
+1. **passlist** hit → *splice* — the connection flows through untouched (no decrypt).
+2. **bumplist** hit → *bump* — re-encrypt with the appliance CA, stream the payload to clamd via `INSTREAM`.
+3. Neither → **default bump** (fail closed).
+4. clamd returns **clean** → forwarded; **INFECTED** → connection blocked, verdict logged.
+
+Every step writes one JSONL line: `{ts, host, url_category, action, verdict}` to `/data/log/decisions.jsonl` (containers) or `/var/lib/opensase/log/decisions.jsonl` (appliance).
+
+## What replaced the original stack
+
+| Original container | Now |
+|---|---|
+| OpenVPN (CentOS 7) | `services.openvpn` / `image-openvpn` from nixpkgs |
+| Squid + ssl-bump | mitmproxy decrypt/re-encrypt on URL category |
+| C-ICAP | dropped — the addon talks to clamd's INSTREAM protocol directly |
+| ClamAV (CentOS 7) | `services.clamav` / `image-clamav` with entrypoint DB bootstrap |
+| dnsmasq (Atomic) | `services.dnsmasq` / `image-dnsmasq` |
+
+The cICAP layer existed only to bridge Squid↔ClamAV; removing Squid removed the reason for it.
+
+## Transparent mode
+
+`services.opensase.mitmMode = "transparent"` makes the appliance intercept ports 80/443 at the kernel with TPROXY (mangle table fwmark + policy routing), plus `ip_forward`. This never worked inside a Docker bridge; on NixOS it is a first-class systemd `preStart`, so it is reliable — at the cost of requiring the appliance to be the client's default gateway.
+
+The GHCR/compose path ships the explicit-proxy mode (`8080`) which works everywhere a container can bind a port.

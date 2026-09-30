@@ -1,0 +1,41 @@
+---
+title: "CI & Release"
+---
+
+Everything released is built by Nix. There is no `docker build` anywhere in the repo's release path, so nothing floats: CI and your machine produce byte-identical images from the same lockfile.
+
+```{mermaid}
+flowchart LR
+    push["push / PR"] --> chk["flake-check workflow<br/>nix flake check --all-systems --no-build<br/>+ image closure dry-run"]
+    tag["push tag v*"] --> rel["release-images workflow (ubuntu)"]
+    rel --> build["nix build .#image-<svc>"]
+    build --> pushghcr["docker load + tag + push<br/>ghcr.io/shsingh/opensase-&lt;svc&gt;<br/>:latest + :version"]
+    pushghcr --> sbom["SPDX SBOM per image (anchore)"]
+```
+
+## Workflows
+
+| Workflow | Trigger | What it does |
+|---|---|---|
+| `.github/workflows/flake-check.yml` | PRs, pushes to master | `nix flake check --all-systems --no-build` + `--dry-run` builds of all image closures |
+| `.github/workflows/release-images.yml` | tags `v*`, manual | matrix-builds the four images on Linux runners, publishes to GHCR, SBOMs each |
+
+## Images
+
+Built with `pkgs.dockerTools.buildLayeredImage` — see [`nix/images.nix`](https://github.com/shsingh/opensase/blob/master/nix/images.nix). Linux-only outputs (the services are linux-first); darwin systems skip image outputs.
+
+```bash
+nix run .#load-images     # build all four locally + docker load (linux host)
+```
+
+## Publishing a release
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0   # CI builds, SBOMs, pushes
+```
+
+Consumers then need nothing but an OCI runtime — the whole deployment path for non-Nix users starts at `docker compose up`.
+
+## Docs site
+
+`.github/workflows/pages.yml` renders this site with Quarto and deploys it to GitHub Pages on pushes to master touching `_quarto.yml`, `docs/**`, `index.qmd`, or the README.

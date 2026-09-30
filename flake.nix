@@ -50,9 +50,8 @@
               program = "${pkgs.opentofu}/bin/tofu";
             };
 
-            # `nix run .#vm` -- boot the appliance in QEMU (needs KVM; on
-            # macOS host, run `nix run .#vm-arm` on an ARM Linux host, or use
-            # the OrbStack machine recipe in README).
+            # `nix run .#vm` -- boot the appliance VM (needs KVM; on a
+            # macOS/Nix-less host use the GHCR + compose path instead).
             vm = {
               type = "app";
               program = "${x86Vm}/bin/run-opensase-vm";
