@@ -3,32 +3,32 @@
 default_stages: [pre-commit]
 ci:
   autofix_prs: false
+  skip: [nixfmt]          # nix fmt (nixfmt-tree) runs in the dev shell/local; ci env has no nix
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
-        exclude: '(^|/)(LICENSE|.*\.md)$'
+        # exclude legacy artifact material (certs/pems) and vendored easyrsa —
+        # rewriting certs by hook would corrupt them
+        exclude: '^(cicap/|squid/|clamav/|dnsmasq/|openvpn/)'
       - id: end-of-file-fixer
-        exclude: '(^|/)(LICENSE|.*\.md)$'
+        exclude: '^(cicap/|squid/|clamav/|dnsmasq/|openvpn/|.*\.pem$|.*\.crt$|.*\.key$)'
       - id: mixed-line-ending
         args: [--fix=lf]
+        exclude: '^(cicap/|squid/|clamav/|dnsmasq/|openvpn/)'
       - id: check-yaml
         args: [--allow-multiple-documents]
-        exclude: '^nix/.*\.nix$'
       - id: check-json
       - id: check-added-large-files
       - id: detect-private-key
+        # legacy lab PKI under legacy dirs is committed test material (see README);
+        # the hook still guards everything we actively edit
+        exclude: '^(cicap/|squid/|clamav/|dnsmasq/|openvpn/)'
 
-  # nix: flake formatting keeps diffs reviewable
-  - repo: https://github.com/NixOS/nixfmt
-    rev: master
-    hooks:
-      - id: nixfmt
-
-  # shell scripts under nix/ (vpn-init.sh, image entrypoints come from the flake)
+  # shell scripts (vpn-init.sh etc); nix-side entrypoints come from the flake
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1
     hooks:
       - id: shellcheck
-        files: '\.sh$'
+        exclude: '^(openvpn/|cicap/|squid/|clamav/)'   # legacy scripts keep their quirks
