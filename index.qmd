@@ -8,9 +8,7 @@ subtitle: "Self-hosted SASE-style TLS inspection, declared end-to-end with Nix"
 [![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/shsingh/opensase)](https://libraries.io/github/shsingh/opensase)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/shsingh/opensase/master.svg)](https://results.pre-commit.ci/latest/github/shsingh/opensase/master)
 [![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/shsingh/opensase?label=OpenSSF%20Scorecard&style=flat)](https://api.securityscorecards.dev/projects/github.com/shsingh/opensase)
-<!-- OpenSSF Best Practices: after registering opensase at https://www.bestpractices.dev, replace PROJECT_ID with the assigned number and uncomment.
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/PROJECT_ID/badge.svg)](https://www.bestpractices.dev/projects/PROJECT_ID)
--->
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15121/badge.svg)](https://www.bestpractices.dev/projects/15121)
 
 [![flake-check](https://github.com/shsingh/opensase/actions/workflows/flake-check.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/flake-check.yml)
 [![release-images](https://github.com/shsingh/opensase/actions/workflows/release-images.yml/badge.svg)](https://github.com/shsingh/opensase/actions/workflows/release-images.yml)
@@ -63,7 +61,7 @@ flowchart LR
 | OCI images via `dockerTools` | built; release workflow in place |
 | GHCR publish + SBOM | wired on `v*` tags; first release pending |
 | Quarto docs site | this site |
-| OpenSSF Scorecard | workflow live; Best Practices badge pending registration |
+| OpenSSF Scorecard | workflow live; Best Practices project 15121 registered |
 | Kubernetes | images stage cleanly; kustomize overlays TODO |
 | VM boot smoke test | CI TODO |
 | Live EICAR verification | TODO |
