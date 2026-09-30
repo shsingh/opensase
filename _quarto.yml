@@ -33,7 +33,13 @@ website:
         text: Clients
       - href: docs/ci-release.qmd
         text: CI & Release
+      - href: docs/roadmap.qmd
+        text: Roadmap
     right:
+      - href: docs/contributing.qmd
+        text: Contributing
+      - href: docs/security.qmd
+        text: Security
       - icon: github
         href: https://github.com/shsingh/opensase
   sidebar:
@@ -48,6 +54,11 @@ website:
           - docs/policy.qmd
           - docs/clients.qmd
           - docs/ci-release.qmd
+      - section: "Project"
+        contents:
+          - docs/roadmap.qmd
+          - docs/contributing.qmd
+          - docs/security.qmd
 
 format:
   html:

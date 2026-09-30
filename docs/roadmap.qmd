@@ -1,0 +1,140 @@
+---
+title: "Roadmap"
+subtitle: "What is built, what is next, and what we want your input on"
+toc: true
+---
+
+This roadmap tracks capability work — what already exists, what is being built,
+and why each piece matters for a self-hosted TLS-inspection edge. It is a
+technical reading order, not a ticket dump: the living, tickable version of
+every item lives on the [OpenSASE Roadmap project board](https://github.com/shsingh/opensase/projects)
+(linked to this repo; each card carries an **Area** (component) and a
+**Target** grouping).
+
+Targets (`v0.1.x`, `v0.2.x`, `Later`) are sequencing, not commitments — there are
+no dates. Security-sensitive work follows the verdict order
+**passlist → bumplist → default bump**: nothing on this page changes that
+posture without a documented rationale and decision-log evidence (see
+[Contributing](contributing.qmd)).
+
+## Snapshot
+
+| # | Item | Area | Target | Status |
+|---|------|------|--------|--------|
+| [#7](https://github.com/shsingh/opensase/issues/7) | v0.1.0: signed tag, first GHCR publish, verified draft release | Release & supply-chain | v0.1.x | planned |
+| [#11](https://github.com/shsingh/opensase/issues/11) | Certificate renewal / rotation workflow (`vpn-renew`, expiry checks, client re-export) | VPN & PKI | v0.1.x | planned |
+| [#15](https://github.com/shsingh/opensase/issues/15) | Fail-mode verdict test suite (splice / bump / INFECTED samples) | Policy & inspection | v0.1.x | planned |
+| [#8](https://github.com/shsingh/opensase/issues/8) | Multi-arch images (amd64 + arm64) | Images | v0.1.x | planned |
+| [#10](https://github.com/shsingh/opensase/issues/10) | Prebuilt kustomize manifests + Kubernetes deployment docs | Kubernetes | v0.2.x | planned |
+| [#9](https://github.com/shsingh/opensase/issues/9) | Cosign image signing + provenance attestations | Release & supply-chain | v0.2.x | planned |
+| [#14](https://github.com/shsingh/opensase/issues/14) | Remote policy feeds with signed updates + hot reload | Policy & inspection | v0.2.x | planned |
+| [#16](https://github.com/shsingh/opensase/issues/16) | Decision-log export + metrics endpoint | Observability | v0.2.x | planned |
+| [#12](https://github.com/shsingh/opensase/issues/12) | `tls-crypt` by default (blocked on OpenVPN Connect iOS) | VPN & PKI | Later | planned |
+| [#13](https://github.com/shsingh/opensase/issues/13) | IPv6 tunnel + egress (fail-closed against bypass) | VPN & PKI | Later | planned |
+
+`planned` = open issue on the board's **Todo** column. Move cards there as work
+starts and lands; closed issues drop off this table naturally.
+
+## Release & supply-chain
+
+**The first real release is the top priority.** The pipeline is fully wired —
+on a `v*` tag, CI Nix-builds all four images, pushes them to GHCR, records
+digests, attaches SPDX SBOMs, verifies the tag signature, and opens a draft
+release with a digest table and changelog. What has never happened is the tag.
+Until [#7](https://github.com/shsingh/opensase/issues/7) lands, the README's
+`docker compose up` quickstart pulls images that do not exist yet, and the
+[installation failure that started issue #2](https://github.com/shsingh/opensase/issues/2)
+(CentOS 7 EOL killing the legacy Docker build) has no shipped alternative.
+
+Signing already covers source: commits are signed, releases are signed tags,
+SBOMs are attached. [#9](https://github.com/shsingh/opensase/issues/9) extends
+that to the artifacts themselves — keyless cosign signatures and provenance
+attestations on every published image, so consumers can verify in-registry
+rather than trusting the registry.
+
+## Multi-arch images
+
+`release-images.yml` currently builds on amd64 runners and pushes single-arch
+images. On Apple Silicon or Arm servers — the most common self-hosting hardware
+this project will meet — that means emulation or failure.
+[#8](https://github.com/shsingh/opensase/issues/8) publishes proper
+`amd64` + `arm64` manifest lists, keeping the Nix-built-from-flake property
+(the same flake produces both arches byte-identically) instead of bolting on a
+Dockerfile cross-build path.
+
+## Kubernetes
+
+The four images are stateless OCI and already stage on Kubernetes under the
+standard contract — `NET_ADMIN` on `openvpn`, `RWO` volumes per service, PKI
+injected before the VPN starts. What is missing is the packaging:
+[#10](https://github.com/shsingh/opensase/issues/10) ships a kustomize overlay
+plus the deployment page (PKI bootstrap order, security contexts per service),
+turning the README's "staging table" promises into a `kubectl apply` path.
+
+## VPN & PKI
+
+The PKI story today is bootstrap-only: `ovpn_init.sh` builds the CA once, and
+everything after that — cert renewal, CA rotation, client re-provisioning — is
+manual easy-rsa surgery. [#11](https://github.com/shsingh/opensase/issues/11)
+adds the missing lifecycle: a renewal flow that does not silently break
+clients (the
+[`tls-auth` HMAC failures in issue #3](https://github.com/shsingh/opensase/issues/3)
+are exactly what an unre-provisioned client looks like after a server-side
+renewal), an expiry-check command, and documentation of what clients must
+re-provision after each operation type.
+
+Two items sit behind external or architectural gates:
+
+- [#12](https://github.com/shsingh/opensase/issues/12) flips the default to
+  `tls-crypt` once OpenVPN Connect for iOS supports it. Until then `tls-auth`
+  stays, and client profiles carry the static key in a `<tls-auth>` block.
+- [#13](https://github.com/shsingh/opensase/issues/13) brings up IPv6. This is
+  not a checkbox: on a TLS-inspection edge, a v6 path that bypasses the
+  splice/bump/scan chain is a policy leak — inspection evades the verdict
+  pipeline entirely. The fail-closed option (block v6 egress when v6
+  interception is not configured) is part of the feature, not an afterthought.
+
+## Policy & inspection
+
+Policy lists (`passlist` / `bumplist`) are baked into the mitmproxy image at
+build time. That is correct for a sealed appliance and stale for an
+ops-driven edge, where category sets change on ops timescales, not release
+timescales. [#14](https://github.com/shsingh/opensase/issues/14) adds
+subscription feeds with detached signatures, verified fail-closed before
+acceptance, and hot reload — deliberately designed so the trust boundary moves
+with the feature rather than around it.
+
+[#15](https://github.com/shsingh/opensase/issues/15) closes the enforcement
+gap: [Contributing](contributing.qmd) already requires policy-posture changes
+to state the verdict order and include decision-log samples, but nothing
+automated enforces it. A suite that drives real traffic through the edge and
+asserts on `decisions.jsonl` content — splice, bump, INFECTED, fail-closed —
+makes the posture CI-gated. It is self-contained and a good first issue.
+
+## Observability
+
+Every verdict is written to a local JSONL decision log — accurate, and
+invisible the moment you run more than one edge.
+[#16](https://github.com/shsingh/opensase/issues/16) adds export and a metrics
+endpoint: verdict counters, scan-latency histograms, infected-blocked totals,
+plus the unglamorous but necessary log rotation (growth is currently
+unbounded). The goal: an edge you can operate from a dashboard, not from
+`docker exec`.
+
+## Feature requests
+
+Want one of these faster — or want something that is not on the list?
+
+- **Raise an existing item's priority**: comment on its issue with your use
+  case. Use-case comments move Targets; "+1" alone does not.
+- **Open-ended candidates** where community input genuinely shapes design:
+  [#13](https://github.com/shsingh/opensase/issues/13) (IPv6 deployment
+  assumptions), [#14](https://github.com/shsingh/opensase/issues/14) (feed
+  format), [#16](https://github.com/shsingh/opensase/issues/16) (sink choices).
+- **Propose something new**: [open an issue](https://github.com/shsingh/opensase/issues/new/choose)
+  and follow the scope conventions in
+  [Contributing](contributing.qmd) (`feat(scope): subject`, one change per
+  branch).
+- **Security-sensitive proposals are not feature requests** — anything that
+  looks like a vulnerability goes through
+  [Security](security.qmd), never a public issue.
