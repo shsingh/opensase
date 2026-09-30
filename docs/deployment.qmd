@@ -2,7 +2,7 @@
 title: "Deployment"
 ---
 
-Three paths, one source of truth (the flake). Pick by machine and appetite:
+Three paths, one source of truth (the flake). Match the path to the host:
 
 ```{mermaid}
 flowchart TD
@@ -55,7 +55,22 @@ Cert material lives in `/var/lib/opensase/openvpn`; the `openvpn-opensase` unit 
 nix build .#vm-x86_64 && ./result/bin/run-opensase-vm    # aarch64: .#vm-aarch64
 ```
 
-Needs KVM — a Linux host. This is the "just let me see it" target: boots the full appliance, `decisions.jsonl` and all.
+Needs KVM — a Linux host. Minimal-evaluation target: boots the full appliance, decision log included.
+
+## Kubernetes
+
+No prebuilt manifests yet — a kustomize follow-up is tracked in the README Status list. The images stage on Kubernetes with this contract:
+
+| Container | Image | Capabilities | Volume |
+|---|---|---|---|
+| dnsmasq | `opensase-dnsmasq` | — | `RWO` for `/var/lib/misc` |
+| clamav | `opensase-clamav` | — | `RWO` for `/var/lib/clamav` (signature DB) |
+| mitmproxy | `opensase-mitmproxy` | — | `RWO` for `/data` (decision log) |
+| openvpn | `opensase-openvpn` | `NET_ADMIN` | `RWO` for `/data-priv` (`server.conf` + PKI) |
+
+- **Services**: `LoadBalancer` or `NodePort` for `udp/5443` (VPN) and `tcp/53` (DNS); mitmproxy `8080` as ClusterIP (explicit-proxy clients) or LoadBalancer.
+- **PKI**: `server.conf` + CA/certs must exist under `/data-priv` before `openvpn` starts — inject via Secret with a postStart copy, or a protected volume. The k8s follow-up adds a readiness gate on this.
+- **Transparent mode: unsupported on Kubernetes.** TPROXY interception needs CNI-level support; run mitmproxy as an explicit proxy (`8080`) behind a Service instead.
 
 ## Cloud
 
