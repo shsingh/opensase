@@ -1,0 +1,25 @@
+name: flake-check
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: flake check (evaluate everything, build nothing)
+        run: nix flake check --all-systems --no-build
+
+      - name: image closures evaluate (x86_64-linux)
+        run: |
+          for img in dnsmasq clamav mitmproxy openvpn; do
+            nix build ".#image-$img" --dry-run
+          done

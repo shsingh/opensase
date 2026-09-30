@@ -1,110 +1,84 @@
----
-# docker-compose for OpenVPN+Transparent Proxy (including Virus Scan and Blacklists)
+# OpenSASE -- compose deployment for non-Nix users.
+#
+# The images below are built by Nix in CI (this repo ships no Dockerfiles as
+# build inputs) and published to GHCR. Runs on Linux/macOS/Windows with any
+# OCI runtime (Docker Desktop, Podman, containerd):
+#
+#   git clone https://github.com/shsingh/opensase && cd opensase
+#   nix run .#vpn-init                # one-time OpenVPN CA bootstrap (or see
+#                                     # README for the container-only path)
+#   docker compose -p opensase up -d
+#
+# Nix users: `nix run .#load-images` builds the byte-identical images from
+# the flake locally instead of pulling from GHCR.
+#
+# The legacy CentOS 7 Dockerfiles (dnsmasq/ clamav/ cicap/ squid/ openvpn/)
+# are kept for archaeology only -- nothing composes from them anymore.
 
-version: '3'
+name: opensase
 
 volumes:
-  # All: logs, ClamAV db
-  data:
-  # OpenVPN private data: VPN CA + client certificates
-  openvpn_priv:
-  # Squid private data: Squid SSL bump CA,
-  squid_priv:
+  data:            # dnsmasq lease/log data + clamav db
+  openvpn_priv:    # VPN CA + server/client certs (bootstrap first!)
+  mitm_data:       # mitmproxy confdir + JSONL decision log
 
 networks:
   main:
     driver: bridge
-    # enable_ipv6: true
     ipam:
       driver: default
       config:
-      -
-        subnet: 192.168.50.0/24
+        - subnet: 192.168.50.0/24
 
 services:
   dnsmasq:
     hostname: dnsmasq
-    image: opensase_dnsmasq:latest
-    build: ./dnsmasq/
-    expose:
-      - "53/tcp"
-      - "53/udp"
-    cap_add:
-      - NET_ADMIN
-    volumes:
-      - data:/data
+    image: ghcr.io/shsingh/opensase-dnsmasq:latest
+    cap_add: [ NET_ADMIN ]
+    expose: [ "53/tcp", "53/udp" ]
+    volumes: [ "data:/var/lib/misc" ]
     networks:
       main:
         ipv4_address: 192.168.50.2
 
   clamav:
     hostname: clamav
-    image: opensase_clamav:latest
-    build: ./clamav/
-    expose:
-      - "3310/tcp"
-    volumes:
-      - data:/data
+    image: ghcr.io/shsingh/opensase-clamav:latest
+    expose: [ "3310/tcp" ]
+    # first run populates the DB (set SKIP_FRESHCLAM=1 to go offline)
+    volumes: [ "data:/var/lib/clamav" ]
     networks:
       main:
         ipv4_address: 192.168.50.3
 
-  cicap:
-    hostname: cicap
-    image: opensase_cicap:latest
-    build: ./cicap/
-    depends_on:
-      - clamav
-    expose:
-      - "1344/tcp"
-    volumes:
-      - data:/data
+  mitmproxy:
+    hostname: mitmproxy
+    image: ghcr.io/shsingh/opensase-mitmproxy:latest
+    depends_on: [ clamav ]
+    expose: [ "8080/tcp" ]
+    environment:
+      - CLAMD_HOST=clamav
+      - CLAMD_PORT=3310
+    volumes: [ "mitm_data:/data" ]
     networks:
       main:
         ipv4_address: 192.168.50.4
+    # explicit-proxy clients point at this; VPN traffic is forwarded here
+    # by the openvpn container's config (visible-proxy mode v1).
 
-  # Create Squid data container:
-  #   > docker run -ti --rm --volume=dockeropensase_data:/data --volume=dockeropensase_squid_priv:/data-priv opensase_squid --init
-  # Get already create Squid CA, to be trusted by Browsers:
-  #   > docker run -ti --rm --volume=dockeropensase_data:/data --volume=dockeropensase_squid_priv:/data-priv opensase_squid --getca
-  squid:
-    hostname: squid
-    image: opensase_squid:latest
-    build: ./squid/
-    depends_on:
-      - cicap
-      - openvpn
-    expose:
-      - "3128/tcp"
-      - "3129/tcp"
-      - "3130/tcp"
-    cap_add:
-      - NET_ADMIN
+  openvpn:
+    hostname: openvpn
+    image: ghcr.io/shsingh/opensase-openvpn:latest
+    depends_on: [ dnsmasq, mitmproxy ]
+    cap_add: [ NET_ADMIN ]
+    ports:
+      - "5443:5443/udp"
     volumes:
+      - openvpn_priv:/data-priv
       - data:/data
-      - squid_priv:/data-priv
     networks:
       main:
         ipv4_address: 192.168.50.5
-
-  # in order for openvpn to start, needs to be initialized first interactively
-  #   Create data container with CA:
-  #     > docker run -ti --rm --volume=dockeropensase_data:/data --volume=dockeropensase_openvpn_priv:/data-priv opensase_openvpn --init=udp://vpn.example.com:5443
-  #   Create client config:
-  #     > docker run -ti --rm --volume=dockeropensase_data:/data --volume=dockeropensase_openvpn_priv:/data-priv vpn-box/openvpn --getclient client01
-  openvpn:
-    hostname: openvpn
-    image: opensase_openvpn:latest
-    build: ./openvpn/
-    depends_on:
-      - dnsmasq
-    cap_add:
-      - NET_ADMIN
-    ports:
-      - "5443:1194/udp"
-    volumes:
-      - data:/data
-      - openvpn_priv:/data-priv
-    networks:
-      main:
-        ipv4_address: 192.168.50.6
+    # /data-priv/server.conf must exist: bootstrap with `nix run .#vpn-init`
+    # and copy ./state/openvpn/* into the volume (README), or supply your own
+    # server.conf + PKI.

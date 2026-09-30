@@ -1,0 +1,45 @@
+name: release-images
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: [dnsmasq, clamav, mitmproxy, openvpn]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Log in to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build OCI image from flake
+        run: nix build ".#image-${{ matrix.image }}" --out-link result-img
+
+      - name: Load, tag, push
+        run: |
+          docker load < result-img
+          VERSION="${GITHUB_REF_NAME#v}"
+          for tag in latest "$VERSION"; do
+            docker tag "opensase-${{ matrix.image }}:latest" \
+              "ghcr.io/${{ github.repository_owner }}/opensase-${{ matrix.image }}:$tag"
+            docker push "ghcr.io/${{ github.repository_owner }}/opensase-${{ matrix.image }}:$tag"
+          done
+
+      # Supply-chain hygiene: SBOM + provenance artifact for each release tag.
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: "ghcr.io/${{ github.repository_owner }}/opensase-${{ matrix.image }}:${{ github.ref_name }}"
+          format: spdx-json
+          artifact-name: "sbom-opensase-${{ matrix.image }}.spdx.json"
