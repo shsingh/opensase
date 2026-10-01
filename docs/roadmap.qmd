@@ -21,8 +21,7 @@ posture without a documented rationale and decision-log evidence (see
 
 {{< include _board-snapshot.qmd >}}
 
-`planned` = open issue on the board's **Todo** column. Move cards there as work
-starts and lands; closed issues drop off this table naturally.
+Status meaning: `Todo` is planned (open issue), `In Progress` is underway, and `Done` is merged and shipped. Closed issues drop off the table automatically; the board remains the working tracker between deploys.
 
 ## Release & supply-chain
 
