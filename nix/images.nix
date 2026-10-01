@@ -55,7 +55,8 @@
           name = "opensase-clamav";
           contents = [
             pkgs.clamav
-            pkgs.coreutils # entry script uses `install`
+            pkgs.coreutils # entry script: install(1) by absolute path
+            pkgs.bash      # entry script shebang (writeShellScript -> bash)
             pkgs.dockerTools.caCertificates
             # bare buildLayeredImage has no /etc/passwd and no /tmp; clamd
             # needs both (User root lookup, LogFile /tmp/clamd.log, pid dir)
@@ -71,10 +72,12 @@
             '')
           ];
           config = {
-            # bootstrap DB on first run, then serve 3310
+            # bootstrap DB on first run, then serve 3310.
+            # Nix convention: every binary by absolute store path -- the image
+            # has no PATH that resolves `install`, and no shell for [ ].
             Entrypoint = [
               "${pkgs.writeShellScript "clamav-entry" ''
-                install -d -m 0755 /var/lib/clamav /tmp /var/run/clamav
+                ${pkgs.coreutils}/bin/install -d -m 0755 /var/lib/clamav /tmp /var/run/clamav
                 if [ ! -e /var/lib/clamav/daily.cvd ] && [ -z "''${SKIP_FRESHCLAM:-}" ]; then
                   ${pkgs.clamav}/bin/freshclam --datadir=/var/lib/clamav \
                     --config-file=${./freshclam.conf} || \
@@ -94,6 +97,7 @@
           name = "opensase-mitmproxy";
           contents = [
             mitmEnv
+            pkgs.bash # entry script shebang
             pkgs.dockerTools.caCertificates
           ];
           config = {

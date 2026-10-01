@@ -88,8 +88,14 @@ jobs:
           echo "DECISION-LOG: PASS"
 
       - name: Dump stack logs on failure
-        if: failure()
-        run: docker compose -p opensase logs --tail=100
+        if: always()
+        run: |
+          docker compose -p opensase logs --tail=60
+          echo "--- runtime states ---"
+          for c in dnsmasq clamav mitmproxy openvpn; do
+            docker inspect "opensase-${c}-1" \
+              --format "{{.Name}} exit={{.State.ExitCode}} error={{.State.Error}} oom={{.State.OOMKilled}}" 2>/dev/null || true
+          done
 
   publish-images:
     needs: [smoke-stack]
