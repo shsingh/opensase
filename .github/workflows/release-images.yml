@@ -160,6 +160,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0          # full history: tag ranges + signed tags
+          fetch-tags: true        # tag OBJECTS, not just peeled commits (#55)
           persist-credentials: false
 
       - name: Download build artifacts (digests + SBOMs)
@@ -173,6 +174,9 @@ jobs:
         run: |
           curl -fsSL "https://keys.openpgp.org/vks/v1/by-fingerprint/9CB1781DC2BB28D37A0155DCAAF8226F3F4C1712" | gpg --import
           gpg --list-keys 9CB1781DC2BB28D37A0155DCAAF8226F3F4C1712
+
+      - name: Fetch tag objects explicitly
+        run: git fetch --force origin 'refs/tags/v*:refs/tags/v*'
 
       - name: Verify tags are signed (fail the release otherwise)
         run: |
