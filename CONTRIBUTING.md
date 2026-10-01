@@ -23,6 +23,12 @@ gates enforce.
    [signed tags](docs/ci-release.qmd) — unsigned commits and unsigned tags are
    not merged/published. Verify with `git log --show-signature` / `git tag -v`.
 4. **One logical change per PR.** Small, reviewable diffs merge faster.
+5. **Pre-commit runs locally.** Install the hooks once per clone —
+   `pre-commit install && pre-commit install --hook-type pre-push` —
+   then every `git commit` and `git push` runs the same hook set CI runs
+   (no-op in clones without a config; bypass with `--no-verify` for the
+   rare legitimate exception). pre-commit.ci still gates every PR; local
+   hooks just catch violations before the push instead of after.
 
 ## Security-sensitive changes
 
