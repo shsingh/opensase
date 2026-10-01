@@ -11,3 +11,6 @@ __pycache__/
 # nix build outputs
 result
 result-*
+# quarto local state
+.quarto/
+_site/
