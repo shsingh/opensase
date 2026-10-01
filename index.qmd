@@ -75,6 +75,6 @@ The payoff is uniformity: one lockfile determines the appliance boot, the GHCR i
 
 {{< include docs/_board-snapshot.qmd >}}
 
-Closed milestones and the narrative reading order: [Roadmap](docs/roadmap.qmd). Candidate directions: [Future](docs/future.qmd).
+Closed milestones and the narrative reading order are on the [Roadmap](docs/roadmap.qmd) page; candidate future directions are on [Future](docs/future.qmd).
 
 Read the [architecture](docs/architecture.qmd) overview, or go to [deployment](docs/deployment.qmd). Project direction: [Roadmap](docs/roadmap.qmd) · [Future](docs/future.qmd). Operations help: [Troubleshooting](docs/troubleshooting.qmd). Contributing, security policy, code of conduct: [CONTRIBUTING](https://github.com/shsingh/opensase/blob/master/CONTRIBUTING.md) · [SECURITY](https://github.com/shsingh/opensase/blob/master/SECURITY.md) · [CoC](https://github.com/shsingh/opensase/blob/master/CODE_OF_CONDUCT.md).
