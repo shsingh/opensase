@@ -1,42 +1,42 @@
 ---
 title: "Future directions"
-subtitle: "Use cases, candidate components, and the shapes we might build next"
+subtitle: "Candidate capabilities and components beyond the current roadmap"
 ---
 
-OpenSASE is growing into **two halves**, deliberately:
+OpenSASE is planned as two complementary halves:
 
-1. **The SASE half** — a policy-driven TLS-inspection edge for teams and
-   servers (what the [Roadmap](roadmap.qmd) mainly tracks).
-2. **The home-appliance half** — install it at home like a Pi-hole: every
-   device (phone, laptop, TV) routes through it, and you get what a DNS
-   blocker alone never gives you — **visibility** (what every device does),
-   **control** (block/splice/bump per device and category), and
-   **malware + DLP verdicts** on the traffic you choose to decrypt.
+1. **The SASE edge** — a policy-driven TLS-inspection appliance for teams and
+   servers (tracked on the [Roadmap](roadmap.qmd)).
+2. **The home appliance** — installed at home like Pi-hole, with every device
+   (phone, laptop, TV) routed through it. Above DNS blocking it adds:
+   **visibility** (per-device activity), **control** (block/splice/bump per
+   device and category), and **malware + DLP verdicts** on decrypted traffic.
 
-Design rule for the second half: **lightweight-first, containerized
-everything.** Components must run happily on a Pi 5 / N100 mini-PC next to
-the existing four containers — anything needing more gets parked (section on
-GPU/ML below). Modularity is a deployment property: a compose-profile design
-([#29](https://github.com/shsingh/opensase/issues/29)) will make the
-**bare-minimum decrypt edge** (dnsmasq + openvpn + mitmproxy) installable on
-its own, with scanner, DNS-policy, agent-inspection, and chat modules as
+Constraints for the second half: **lightweight-first, containerized
+everything.** Components must run on a Pi 5 / N100 mini-PC adjacent to the
+existing four containers; anything heavier is parked (GPU/ML section below).
+Modularity is a deployment property: compose profiles
+([#29](https://github.com/shsingh/opensase/issues/29)) make the
+**bare-minimum decrypt edge** (dnsmasq + openvpn + mitmproxy) installable
+alone, with scanner, DNS-policy, agent-inspection, and chat modules as
 opt-ins.
 
-Each numbered item below links its tracking issue. Nothing here has dates —
-sequencing is by dependency, and the [board](https://github.com/users/shsingh/projects/5)
-carries Area/Target per card.
+Each section links its tracking issue; sequencing is dependency-driven (no
+dates), and the [board](https://github.com/users/shsingh/projects/5) carries
+Area/Target per card.
 
-## Home appliance: per-device policy + family visibility
+## Home appliance: per-device policy + visibility
 
 Devices are identified by their VPN client certificate CN;
 [`nix run .#vpn-getclient`](https://github.com/shsingh/opensase#client-setup)
-already produces per-device profiles — policy just reads the CN. Passlist /
-bumplist decisions gain an optional device dimension: kids' tablet gets
-social-media blocked after 8pm, parents' laptop splices everything. A
-family dashboard rides the #16 metrics/export work: verdict counts per
-device, top domains, blocked events. The trust bootstrap (installing the
-appliance CA on family devices, with per-device splice-only opt-out) is
-treated as an honest documentation problem, not a hand-wave.
+already produces per-device profiles — policy reads the CN. Passlist /
+bumplist decisions gain an optional device dimension: per-device category
+rules and schedules (e.g. a device restricted from selected categories
+during stated hours) while other devices splice by default. A dashboard
+rides the #16 metrics/export work: verdict counts per device, top domains,
+blocked events. The trust bootstrap (installing the appliance CA on client
+devices, with per-device splice-only opt-out) is specified as a
+documentation deliverable, not left implicit.
 
 → [#19](https://github.com/shsingh/opensase/issues/19) · depends on #8
 (arm64 images — the Pi 5 *is* arm64), #15, #16
@@ -106,51 +106,52 @@ gitleaks rule sets (rules-as-data); feeds slot into #14's signed format.
 
 → [#26](https://github.com/shsingh/opensase/issues/26)
 
-## Chat on the edge: Prosody XMPP (with stated limits)
+## Chat on the edge: Prosody XMPP (limits stated)
 
-The family chat server runs on the appliance: **Prosody** (MIT, Lua,
-genuinely lightweight). An inspection component attaches via XEP-0114
-(external components, verified) and XEP-0356 Privileged Entity where
-moderation needs it: metadata logging, MUC moderation, spam filters for
-kids' accounts — all shaped as decision-log verdicts.
+The chat server runs on the appliance: **Prosody** (MIT, Lua, minimal
+runtime footprint). An inspection component attaches via XEP-0114 (external
+component protocol) and, where moderation requires it, XEP-0356 Privileged
+Entity: metadata logging, MUC (XEP-0045) moderation, and account-level spam
+filters — all emitted as decision-log verdicts.
 
-The good bit: **file-transfer scanning.** Attachments sent through the chat
-server's http.upload (XEP-0363) flow through the same bump + ClamAV verdict
-path as any HTTPS egress — family chat attachments get INFECTED /
-LEAK_BLOCK verdicts like everything else.
+The headline capability: **file-transfer scanning.** Attachments sent via
+the chat server's http.upload (XEP-0363) traverse the same bump + ClamAV
+verdict path as any HTTPS egress — chat attachments receive INFECTED /
+LEAK_BLOCK verdicts under the same policy.
 
-The hard limit, stated up front: **OMEMO (XEP-0384) end-to-end encryption
-makes message content invisible to any server-side component by design**
-(that is the spec's own threat model). We see metadata, unencrypted
-fallback traffic, and file transfers — not OMEMO content, ever. Bumping
-third-party providers' XMPP is certificate hell and is not planned.
+Hard limits, stated up front: **OMEMO (XEP-0384) end-to-end encryption makes
+message content invisible to any server-side component by design** — that is
+the spec's own threat model. Observable: metadata (from/to, timestamps,
+MUC rooms), unencrypted fallback traffic, and file transfers — never OMEMO
+content. TLS-bumping third-party providers' XMPP is operationally
+untenable (certificate trust) and out of scope.
 
 → [#27](https://github.com/shsingh/opensase/issues/27)
 
-## Parked: identity-aware access (ZTNA-lite) and GPU/ML
+## Deferred: identity-aware access (ZTNA-lite) and GPU/ML
 
-Two directions are deliberately behind the rest:
+Two directions deliberately trail the lightweight stack:
 
 - **ZTNA-lite** — publish internal services behind per-identity policy (the
-  VPN cert *is* the identity; lean variant is a mitmproxy addon, full
-  variant is Pomerium). Waits for the appliance basics to land.
+  VPN client certificate is the identity; lean variant is a mitmproxy addon,
+  full variant is Pomerium). Gated on the appliance basics (#19, #23).
   → [#24](https://github.com/shsingh/opensase/issues/24)
 - **GPU/ML module** — semantic DLP, prompt-injection classifiers, a local
-  LLM judge on suspicious payloads. Needs real hardware and a licensing
-  conversation (the Python ML stack is Apache-2.0-heavy; in-process
-  imports would conflict with our GPLv2 — everything model-shaped ships as
-  its own container). → [#28](https://github.com/shsingh/opensase/issues/28)
+  LLM verdict engine for suspicious payloads. Requires accelerator hardware
+  and a licensing decision (the Python ML stack is Apache-2.0-heavy;
+  in-process imports are GPLv2-incompatible — all model-backed components
+  ship as separate containers). → [#28](https://github.com/shsingh/opensase/issues/28)
 
-## Last, not least: post-quantum ciphers
+## Post-quantum ciphers (scheduled last)
 
-The deliberate last item: a PQ survey of every crypto hop (OpenVPN control
-channel via TLS 1.3/OpenSSL ML-KEM hybrids, data-channel cipher reality,
-mitmproxy and QUIC crypto paths) ending in a position statement and
-experiment plan. No hype until the appliance roadmap lands.
+A deliberate sequencing choice: survey every crypto hop (OpenVPN control
+channel via TLS 1.3/OpenSSL ML-KEM hybrids, data-channel cipher posture,
+mitmproxy and QUIC TLS termination) and produce a position statement plus
+experiment plan. No implementation before the lightweight roadmap is stable.
 
 → [#30](https://github.com/shsingh/opensase/issues/30)
 
-## Licensing ground rules (binding on all of the above)
+## Licensing constraints (apply to all sections)
 
 OpenSASE's own code imports only MIT/BSD/LGPL/GPL-2-family code —
 **Apache-2.0 is never imported in-process** (GPLv2-incompatible). Apache-2.0,

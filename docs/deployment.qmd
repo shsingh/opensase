@@ -6,13 +6,13 @@ Three paths, one source of truth (the flake). Match the path to the host:
 
 ```{mermaid}
 flowchart TD
-    start["I want OpenSASE running"] --> q{"Nix on this machine?"}
+    start["Deployment target"] --> q{"Nix available?"}
     q -- "no / macOS / Windows" --> ghcr["Pull GHCR images<br/>docker compose up"]
-    q -- "yes" --> nix{"What kind of target?"}
-    nix -- "try it out" --> vm["nix build .#vm-x86_64<br/>run-opensase-vm"]
-    nix -- "real machine I control" --> rebuild["nixos-rebuild switch<br/>--flake .#opensase"]
-    nix -- "remote machines" --> target["nixos-rebuild switch<br/>--target-host root@ip"]
-    nix -- "want containers anyway" --> local["nix run .#load-images<br/>docker compose up"]
+    q -- "yes" --> nix{"Deployment class"}
+    nix -- "evaluation" --> vm["nix build .#vm-x86_64<br/>run-opensase-vm"]
+    nix -- "physical / VM host" --> rebuild["nixos-rebuild switch<br/>--flake .#opensase"]
+    nix -- "remote fleet" --> target["nixos-rebuild switch<br/>--target-host root@ip"]
+    nix -- "local container build" --> local["nix run .#load-images<br/>docker compose up"]
 ```
 
 ## Path 1 — Docker compose (no Nix, any OS)
@@ -59,7 +59,19 @@ Needs KVM — a Linux host. Minimal-evaluation target: boots the full appliance,
 
 ## Kubernetes
 
-No prebuilt manifests yet — a kustomize follow-up is tracked in the README Status list. The images stage on Kubernetes with this contract:
+Base manifests are committed and declarative: `k8s/manifests.cue` holds the
+service model (image references, capabilities, volumes, ports, environment —
+mirroring `nix/images.nix`) and renders `k8s/manifests.yaml` (a `v1` List
+with PVCs, Services, and Deployments for all four services):
+
+```bash
+nix run .#k8s-manifests          # k8s/manifests.cue -> k8s/manifests.yaml
+kubectl apply -f k8s/manifests.yaml
+```
+
+Remaining work is tracked in [#10](https://github.com/shsingh/opensase/issues/10):
+PKI Secret injection, a readiness gate on the VPN's `server.conf`, and the
+hardening overlay. The service contract as rendered:
 
 | Container | Image | Capabilities | Volume |
 |---|---|---|---|

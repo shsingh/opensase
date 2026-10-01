@@ -2,27 +2,89 @@
 title: "CI & Release"
 ---
 
-Everything released is built by Nix. There is no `docker build` anywhere in the repo's release path, so nothing floats: CI and your machine produce byte-identical images from the same lockfile.
+Every artifact is built by Nix from one lockfile: CI and a local machine produce
+byte-identical images from the same derivations. No `docker build` and no
+Dockerfile exists in the build path.
 
 ```{mermaid}
 flowchart LR
-    push["push / PR"] --> chk["flake-check workflow<br/>nix flake check --all-systems --no-build<br/>+ image closure dry-run"]
-    tag["push tag v*"] --> rel["release-images workflow (ubuntu)"]
-    rel --> build["nix build .#image-<svc>"]
-    build --> pushghcr["docker load + tag + push<br/>ghcr.io/shsingh/opensase-&lt;svc&gt;<br/>:latest + :version"]
-    pushghcr --> sbom["SPDX SBOM per image (anchore)"]
+    trig["v* tag, or workflow_dispatch"] --> build["build-images<br/>nix build .#image-&lt;svc&gt; (matrix x4)"]
+    build --> smoke{"smoke-stack<br/>compose up --wait from fresh images<br/>INSTREAM probes + decision-log assertions"}
+    smoke -- "pass, tag ref" --> pub["publish-images<br/>GHCR :latest + :version + SPDX SBOM"]
+    smoke -- "pass, dispatch" --> rehearse["stop: rehearsal only,<br/>nothing published"]
+    smoke -- "fail" --> dump["failure dump:<br/>compose logs + docker inspect states"]
+    pub --> notes["draft release:<br/>digests, changelog, SBOM assets"]
 ```
 
 ## Workflows
 
-| Workflow | Trigger | What it does |
+| Workflow | Triggers | Function |
 |---|---|---|
-| `.github/workflows/flake-check.yml` | PRs, pushes to master | `nix flake check --all-systems --no-build` + `--dry-run` builds of all image closures |
-| `.github/workflows/release-images.yml` | tags `v*`, manual | matrix-builds the four images on Linux runners, publishes to GHCR, SBOMs each |
+| `flake-check.yml` | PRs, pushes to `master` | `nix flake check --all-systems --no-build` + image-closure dry-run builds |
+| `release-images.yml` | tags `v*`, `workflow_dispatch` | build → smoke gate → publish → draft release (publish and release require a tag ref) |
+| `tests.yml` | tags `v*`, `workflow_dispatch` | addon unit suite (`pytest tests/`, mitmproxy stubbed) |
+
+Merge-path CI is deliberately light: flake-check, pre-commit.ci, and
+dependency-review only. The heavy jobs (image builds, compose smoke, unit
+suite) run on the release path — tags and manual dispatch — so merges stay fast.
+
+## The smoke gate
+
+`smoke-stack` is the release-quality gate: a full compose deployment from the
+**freshly built images** (never from GHCR), exercising the verdict path
+end-to-end before anything can be published.
+
+1. Images are loaded into the runner's daemon from the build job's artifacts.
+2. `docker compose -f docker-compose.yml -f tests/smoke-override.yml up -d --wait`
+   brings up the stack: local image refs, published probe ports, dnsmasq
+   upstream servers, and a stubbed openvpn (the smoke verifies images and the
+   verdict path; tunnel verification needs real PKI and runs in the
+   [verdict test suite](https://github.com/shsingh/opensase/issues/15)).
+3. `tests/instream_probe.py` waits for clamd (`--wait`, polling a clean probe),
+   then asserts both verdicts over the INSTREAM protocol: benign bytes →
+   `CLEAN`, [EICAR](https://www.eicar.org/download-anti-malware-testfile/) →
+   `INFECTED`.
+4. Decision-log assertions: requests through the explicit proxy
+   (`example.com` passlisted → `splice`, `wikipedia.org` unlisted → `bump`)
+   must appear with those verdicts in `decisions.jsonl`.
+
+A failure at any step blocks `publish-images` — nothing broken reaches GHCR.
+The failure dump captures compose logs plus `docker inspect` runtime state
+(exit code, error, OOM) for every container.
+
+## Rehearsals vs releases
+
+`workflow_dispatch` runs the identical build + smoke pipeline without a tag;
+`publish-images` and `release-notes` require `refs/tags/v*` and are skipped
+ otherwise. Dispatches are therefore full **rehearsals** with zero registry
+side effects.
+
+The gate earned its place in six consecutive rehearsals — each caught a real
+image/addon runtime defect that build-time checks cannot see:
+
+| Rehearsal | Defect caught | Issue | Fix |
+|---|---|---|---|
+| #1 | dnsmasq: no `/etc/passwd` in image → privilege-drop fails (exit 1) | [#43](https://github.com/shsingh/opensase/issues/43) | #36 |
+| #2 | dnsmasq: no `/etc/group`, `/var/run` → pidfile failure (exit 3) | [#44](https://github.com/shsingh/opensase/issues/44) | #37 |
+| #3 | clamav entry: `install` not in image PATH; no shell binary (silent exit 1) | [#45](https://github.com/shsingh/opensase/issues/45) | #40 |
+| #4 | freshclam: no `DatabaseMirror` → no DB → clamd fails dead | [#46](https://github.com/shsingh/opensase/issues/46) | #42 |
+| #4+ | addon: `CLAMD_ADDR` hardcoded loopback vs compose `CLAMD_HOST=clamav` → scan fail-open | [#47](https://github.com/shsingh/opensase/issues/47) | #32 |
+| #5 | `/var/lib/clamav` not writable by uid 900 → DB bootstrap fails | [#48](https://github.com/shsingh/opensase/issues/48) | #49 |
+| #6 | — | — | **PASS** ([run](https://github.com/shsingh/opensase/actions/runs/36806070984)) |
+
+Rehearsal #6 cleared all assertions: build ×4, `CLEAN`/`INFECTED` INSTREAM
+probes, and the `splice`/`bump` decision-log lines through real proxy traffic.
+The defect ledger (#43–#48) documents each finding with symptom, root cause,
+and the verifying run.
 
 ## Images
 
-Built with `pkgs.dockerTools.buildLayeredImage` — see [`nix/images.nix`](https://github.com/shsingh/opensase/blob/master/nix/images.nix). Linux-only outputs (the services are linux-first); darwin systems skip image outputs.
+Built with `pkgs.dockerTools.buildLayeredImage` from
+[`nix/images.nix`](https://github.com/shsingh/opensase/blob/master/nix/images.nix);
+image entrypoints reference every binary by absolute store path (no PATH
+resolution inside images) and bake the minimal `/etc/passwd`, `/etc/group`,
+and runtime directories each service requires. Outputs are Linux-only; darwin
+systems skip image outputs.
 
 ```bash
 nix run .#load-images     # build all four locally + docker load (linux host)
@@ -30,22 +92,29 @@ nix run .#load-images     # build all four locally + docker load (linux host)
 
 ## Publishing a release
 
-Releases are **GPG-signed tags** — the workflow verifies the tag (`git tag -v`) and fails before publishing anything unsigned:
+Releases are **GPG-signed tags**; the release job verifies the signature
+(`git tag -v`) and aborts on an unsigned or badly signed tag:
 
-```{.bash}
+```bash
 git tag -s v0.1.0 -m "OpenSASE v0.1.0: initial Nix-built container release"
 git push origin v0.1.0
 ```
 
-The workflow matrix-builds the four images, pushes to GHCR (`:latest` + the version), and opens a **draft release** whose notes are generated on the runner:
+The pipeline then builds, smoke-tests, and publishes all four images to GHCR
+(`:latest` + the version), and opens a **draft release** generated on the
+runner:
 
-- digest table for all four images
+- digest table for all four images (with a note that the images passed the smoke gate)
 - commit changelog since the previous tag
 - SPDX SBOMs attached as release assets
 - 60-second compose deploy snippet
 
-Review and publish the draft to ship. Consumers need nothing but an OCI runtime.
+Publish the draft to ship; consumers need only an OCI runtime. Kubernetes
+consumers apply [`k8s/manifests.yaml`](https://github.com/shsingh/opensase/blob/master/k8s/manifests.yaml),
+rendered from `k8s/manifests.cue` (`nix run .#k8s-manifests`).
 
 ## Docs site
 
-`.github/workflows/pages.yml` renders this site with Quarto and deploys it to GitHub Pages on pushes to master touching `_quarto.yml`, `docs/**`, `index.qmd`, or the README.
+`pages.yml` renders this site with Quarto and deploys to GitHub Pages on
+pushes to `master` that touch `_quarto.yml`, `docs/**`, `index.qmd`, or the
+README.

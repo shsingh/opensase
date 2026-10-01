@@ -1,6 +1,6 @@
 ---
 title: "Roadmap"
-subtitle: "What is built, what is next, and what we want your input on"
+subtitle: "Capability plan by area and release target"
 toc: true
 ---
 
@@ -25,7 +25,7 @@ posture without a documented rationale and decision-log evidence (see
 | [#11](https://github.com/shsingh/opensase/issues/11) | Certificate renewal / rotation workflow (`vpn-renew`, expiry checks, client re-export) | VPN & PKI | v0.1.x | planned |
 | [#15](https://github.com/shsingh/opensase/issues/15) | Fail-mode verdict test suite (splice / bump / INFECTED samples) | Policy & inspection | v0.1.x | planned |
 | [#8](https://github.com/shsingh/opensase/issues/8) | Multi-arch images (amd64 + arm64) | Images | v0.1.x | planned |
-| [#10](https://github.com/shsingh/opensase/issues/10) | Prebuilt kustomize manifests + Kubernetes deployment docs | Kubernetes | v0.2.x | planned |
+| [#10](https://github.com/shsingh/opensase/issues/10) | Kubernetes hardening overlay (PKI Secret, readiness gate) + deployment docs | Kubernetes | v0.2.x | planned |
 | [#9](https://github.com/shsingh/opensase/issues/9) | Cosign image signing + provenance attestations | Release & supply-chain | v0.2.x | planned |
 | [#14](https://github.com/shsingh/opensase/issues/14) | Remote policy feeds with signed updates + hot reload | Policy & inspection | v0.2.x | planned |
 | [#16](https://github.com/shsingh/opensase/issues/16) | Decision-log export + metrics endpoint | Observability | v0.2.x | planned |
@@ -112,7 +112,8 @@ gap: [Contributing](contributing.qmd) already requires policy-posture changes
 to state the verdict order and include decision-log samples, but nothing
 automated enforces it. A suite that drives real traffic through the edge and
 asserts on `decisions.jsonl` content — splice, bump, INFECTED, fail-closed —
-makes the posture CI-gated. It is self-contained and a good first issue.
+makes the posture CI-gated. Self-contained; suitable as a first
+contribution.
 
 ## Observability
 
@@ -120,21 +121,20 @@ Every verdict is written to a local JSONL decision log — accurate, and
 invisible the moment you run more than one edge.
 [#16](https://github.com/shsingh/opensase/issues/16) adds export and a metrics
 endpoint: verdict counters, scan-latency histograms, infected-blocked totals,
-plus the unglamorous but necessary log rotation (growth is currently
-unbounded). The goal: an edge you can operate from a dashboard, not from
-`docker exec`.
+plus log rotation (decision-log growth is currently unbounded). The
+objective is fleet-operable telemetry rather than container-local logging.
 
-## Feature requests
+## Requesting changes
 
-Want one of these faster — or want something that is not on the list?
+Priorities respond to use cases:
 
-- **Raise an existing item's priority**: comment on its issue with your use
-  case. Use-case comments move Targets; "+1" alone does not.
-- **Open-ended candidates** where community input genuinely shapes design:
-  [#13](https://github.com/shsingh/opensase/issues/13) (IPv6 deployment
-  assumptions), [#14](https://github.com/shsingh/opensase/issues/14) (feed
-  format), [#16](https://github.com/shsingh/opensase/issues/16) (sink choices).
-- **Propose something new**: [open an issue](https://github.com/shsingh/opensase/issues/new/choose)
+- **Re-prioritize an existing item**: comment on its issue with the use case.
+  Use-case comments move Targets; "+1" comments are not weighted.
+- **Design input is open on**: [#13](https://github.com/shsingh/opensase/issues/13)
+  (IPv6 deployment assumptions), [#14](https://github.com/shsingh/opensase/issues/14)
+  (feed format), [#16](https://github.com/shsingh/opensase/issues/16)
+  (export/telemetry sinks).
+- **Propose new scope**: [open an issue](https://github.com/shsingh/opensase/issues/new/choose)
   and follow the scope conventions in
   [Contributing](contributing.qmd) (`feat(scope): subject`, one change per
   branch).
