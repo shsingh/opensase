@@ -38,17 +38,18 @@ For every HTTP(S) request the mitmproxy addon evaluates, in order:
 
 Every step writes one JSONL line: `{ts, host, url_category, action, verdict}` to `/data/log/decisions.jsonl` (containers) or `/var/lib/opensase/log/decisions.jsonl` (appliance).
 
-## What replaced the original stack
+## Component inventory
 
-| Original container | Now |
+| Concern | Provided by |
 |---|---|
-| OpenVPN (CentOS 7) | `services.openvpn` / `image-openvpn` from nixpkgs |
-| Squid + ssl-bump | mitmproxy decrypt/re-encrypt on URL category |
-| C-ICAP | dropped — the addon talks to clamd's INSTREAM protocol directly |
-| ClamAV (CentOS 7) | `services.clamav` / `image-clamav` with entrypoint DB bootstrap |
-| dnsmasq (Atomic) | `services.dnsmasq` / `image-dnsmasq` |
+| VPN | `services.openvpn` / `image-openvpn` (nixpkgs) |
+| TLS inspection | mitmproxy addon — decrypt/re-encrypt on URL category |
+| Malware scanning | clamd INSTREAM — the addon speaks the protocol directly |
+| DNS | `services.dnsmasq` / `image-dnsmasq` |
 
-The cICAP layer existed only to bridge Squid↔ClamAV; removing Squid removed the reason for it.
+One declarative source (`nix/images.nix` + `nix/appliance.nix`) drives both the
+container images and the NixOS appliance; the Kubernetes base manifests render
+from CUE (`k8s/manifests.cue`) against the same service model.
 
 ## Transparent mode
 

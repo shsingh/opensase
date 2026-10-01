@@ -25,21 +25,15 @@ website:
         text: Home
       - href: docs/architecture.qmd
         text: Architecture
-      - href: docs/deployment.qmd
-        text: Deployment
-      - href: docs/policy.qmd
-        text: Policy
-      - href: docs/clients.qmd
-        text: Clients
       - href: docs/ci-release.qmd
-        text: CI & Release
+        text: Release
       - href: docs/roadmap.qmd
         text: Roadmap
-      - href: docs/future.qmd
-        text: Future
       - href: docs/troubleshooting.qmd
         text: Troubleshooting
     right:
+      - href: docs/future.qmd
+        text: Future
       - href: docs/contributing.qmd
         text: Contributing
       - href: docs/security.qmd
@@ -54,9 +48,6 @@ website:
       - section: "Docs"
         contents:
           - docs/architecture.qmd
-          - docs/deployment.qmd
-          - docs/policy.qmd
-          - docs/clients.qmd
           - docs/ci-release.qmd
           - docs/troubleshooting.qmd
       - section: "Project"

@@ -1,0 +1,226 @@
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: openvpn-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: dnsmasq-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: clamav-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: mitmproxy-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: opensase-openvpn
+    spec:
+      selector:
+        app: openvpn
+      ports:
+        - name: vpn
+          port: 5443
+          protocol: UDP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: opensase-dnsmasq
+    spec:
+      selector:
+        app: dnsmasq
+      ports:
+        - name: dns-tcp
+          port: 53
+          protocol: TCP
+        - name: dns-udp
+          port: 53
+          protocol: UDP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: opensase-clamav
+    spec:
+      selector:
+        app: clamav
+      ports:
+        - name: clamd
+          port: 3310
+          protocol: TCP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: opensase-mitmproxy
+    spec:
+      selector:
+        app: mitmproxy
+      ports:
+        - name: proxy
+          port: 8080
+          protocol: TCP
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: opensase-openvpn
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: openvpn
+      template:
+        metadata:
+          labels:
+            app: openvpn
+        spec:
+          containers:
+            - name: openvpn
+              image: ghcr.io/shsingh/opensase-openvpn:latest
+              ports:
+                - name: vpn
+                  port: 5443
+                  protocol: UDP
+              env: []
+              securityContext:
+                capabilities:
+                  add:
+                    - NET_ADMIN
+              volumeMounts:
+                - name: openvpn-data
+                  mountPath: /data-priv
+        volumes:
+          - name: openvpn-data
+            persistentVolumeClaim:
+              claimName: openvpn-data
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: opensase-dnsmasq
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: dnsmasq
+      template:
+        metadata:
+          labels:
+            app: dnsmasq
+        spec:
+          containers:
+            - name: dnsmasq
+              image: ghcr.io/shsingh/opensase-dnsmasq:latest
+              ports:
+                - name: dns-tcp
+                  port: 53
+                  protocol: TCP
+                - name: dns-udp
+                  port: 53
+                  protocol: UDP
+              env: []
+              securityContext:
+                capabilities:
+                  add: []
+              volumeMounts:
+                - name: dnsmasq-data
+                  mountPath: /var/lib/misc
+        volumes:
+          - name: dnsmasq-data
+            persistentVolumeClaim:
+              claimName: dnsmasq-data
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: opensase-clamav
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: clamav
+      template:
+        metadata:
+          labels:
+            app: clamav
+        spec:
+          containers:
+            - name: clamav
+              image: ghcr.io/shsingh/opensase-clamav:latest
+              ports:
+                - name: clamd
+                  port: 3310
+                  protocol: TCP
+              env: []
+              securityContext:
+                capabilities:
+                  add: []
+              volumeMounts:
+                - name: clamav-data
+                  mountPath: /var/lib/clamav
+        volumes:
+          - name: clamav-data
+            persistentVolumeClaim:
+              claimName: clamav-data
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: opensase-mitmproxy
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: mitmproxy
+      template:
+        metadata:
+          labels:
+            app: mitmproxy
+        spec:
+          containers:
+            - name: mitmproxy
+              image: ghcr.io/shsingh/opensase-mitmproxy:latest
+              ports:
+                - name: proxy
+                  port: 8080
+                  protocol: TCP
+              env:
+                - name: CLAMD_HOST
+                  value: opensase-clamav
+                - name: CLAMD_PORT
+                  value: "3310"
+              securityContext:
+                capabilities:
+                  add: []
+              volumeMounts:
+                - name: mitmproxy-data
+                  mountPath: /data
+        volumes:
+          - name: mitmproxy-data
+            persistentVolumeClaim:
+              claimName: mitmproxy-data

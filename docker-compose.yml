@@ -1,19 +1,12 @@
-# OpenSASE -- compose deployment for non-Nix users.
-#
-# The images below are built by Nix in CI (this repo ships no Dockerfiles as
-# build inputs) and published to GHCR. Runs on Linux/macOS/Windows with any
-# OCI runtime (Docker Desktop, Podman, containerd):
+# OpenSASE -- compose deployment for the Nix-built OCI images.
 #
 #   git clone https://github.com/shsingh/opensase && cd opensase
-#   nix run .#vpn-init                # one-time OpenVPN CA bootstrap (or see
-#                                     # README for the container-only path)
+#   nix run .#vpn-init                # one-time OpenVPN CA bootstrap
 #   docker compose -p opensase up -d
 #
-# Nix users: `nix run .#load-images` builds the byte-identical images from
-# the flake locally instead of pulling from GHCR.
-#
-# The legacy CentOS 7 Dockerfiles (dnsmasq/ clamav/ cicap/ squid/ openvpn/)
-# are kept for archaeology only -- nothing composes from them anymore.
+# The images are built by Nix in CI and published to GHCR; Nix users can
+# build byte-identical images locally with `nix run .#load-images`.
+# Runs on Linux/macOS/Windows with any OCI runtime.
 
 name: opensase
 

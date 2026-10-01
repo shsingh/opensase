@@ -64,7 +64,8 @@ Authenticate/Decrypt packet error: packet HMAC authentication failed
 Cause: the client profile's static key (`<tls-auth>` block) or certs don't
 match the server's current PKI — the client kept a profile generated before
 a server-side renewal/re-init. Fix: re-export the client profile
-(`ovpn_getclient.sh <cn>` or the container-only equivalent) and re-import on
+(`nix run .#vpn-getclient -- <new-cn>` — see [Troubleshooting](https://shsingh.github.io/opensase/docs/troubleshooting.html))
+and re-import on
 the device. The CN-reuse guard means you may need a fresh CN; see issue #11
 for the renewal-workflow work that automates this.
 

@@ -25,11 +25,23 @@
           name = "opensase-dnsmasq";
           contents = [
             pkgs.dnsmasq
-            # minimal /etc/passwd: dnsmasq drops privileges to "nobody" when
-            # started as root, and a bare buildLayeredImage has no passwd
+            # minimal /etc/passwd + /etc/group: dnsmasq drops privileges to
+            # "nobody" when started as root; a bare buildLayeredImage ships
+            # neither file
             (pkgs.writeTextDir "etc/passwd" ''
               root:x:0:0:root:/root:/bin/sh
               nobody:x:65534:65534:nobody:/var/empty:/bin/sh
+            '')
+            (pkgs.writeTextDir "etc/group" ''
+              root:x:0:
+              nobody:x:65534:
+            '')
+            # pidfile dir + empty resolv fallback (runtime dirs vanish with
+            # tmpfs; dnsmasq exits 3 without a writable /var/run)
+            (pkgs.runCommand "opensase-dnsmasq-dirs" { } ''
+              mkdir -p $out/var/run $out/var/lib/misc $out/etc
+              printf 'nameserver 1.1.1.1\nnameserver 8.8.8.8\n' \
+                > $out/etc/resolv.conf
             '')
           ];
           config = {

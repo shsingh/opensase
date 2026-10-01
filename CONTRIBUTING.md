@@ -43,9 +43,11 @@ warrants extra care (see [SECURITY.md](SECURITY.md) for the full posture):
 - **Policy/default changes** that alter the fail-open/fail-closed posture
   (passlist > bumplist > default-bump) must state the new verdict order and
   include decision-log samples for splice, bump, and INFECTED.
-- **Nix-built images:** keep `nix/images.nix` the only image source — no
-  Dockerfiles, no `FROM` lines. New runtime dependencies belong in the flake,
-  pinned by the lockfile.
+- **Nix-built images:** keep `nix/images.nix` the only image source — every
+  runtime dependency belongs in the flake, pinned by the lockfile. The
+  Kubernetes manifests are declarative too: `k8s/manifests.cue` is the single
+  service model; render with `nix run .#k8s-manifests` and commit the output
+  with the change that altered the model.
 
 ## The acceptance suite
 
