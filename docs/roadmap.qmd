@@ -7,7 +7,7 @@ toc: true
 This roadmap tracks capability work — what already exists, what is being built,
 and why each piece matters for a self-hosted TLS-inspection edge. It is a
 technical reading order, not a ticket dump: the living, tickable version of
-every item lives on the [OpenSASE Roadmap project board](https://github.com/shsingh/opensase/projects)
+every item lives on the [OpenSASE Roadmap project board](https://github.com/users/shsingh/projects/5)
 (linked to this repo; each card carries an **Area** (component) and a
 **Target** grouping).
 
