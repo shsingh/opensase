@@ -1,5 +1,5 @@
 ---
-title: "Future directions"
+title: "Future"
 subtitle: "Candidate capabilities and components beyond the current roadmap"
 ---
 

@@ -51,6 +51,31 @@ One declarative source (`nix/images.nix` + `nix/appliance.nix`) drives both the
 container images and the NixOS appliance; the Kubernetes base manifests render
 from CUE (`k8s/manifests.cue`) against the same service model.
 
+## Bill of materials
+
+What the project is **built with** and what it **runs**, in one table. Runtime
+picks are load-bearing for the verdict pipeline design; everything else is
+plumbing chosen for declarativeness or supply-chain hygiene.
+
+| Layer | Choice | Why this |
+|---|---|---|
+| **Runtime — edge** | OpenVPN (udp/5443, tls-crypt) | mature, client support everywhere, single UDP traversal |
+| **Runtime — inspection** | mitmproxy + Python addon | programmatic splice/bump per request; INSTREAM clamd protocol natively |
+| **Runtime — scanning** | ClamAV (clamd) | self-hostable signature engine, INSTREAM streaming scan |
+| **Runtime — DNS** | dnsmasq | small, fits the appliance model; RPZ hook point for future DNS policy (#25) |
+| **Declarative engine** | Nix flake (`flake.lock` pinned) | one source of truth for ALL artifacts below — images, appliance, manifests, PKI tooling |
+| **Container images** | `dockerTools.buildLayeredImage` | hash-pinned layers, no Dockerfiles, no floating bases |
+| **Appliance** | NixOS modules (`services.openvpn/dnsmasq/clamav/opensase`) | typed options, `nix flake check`-able, systemd-native TPROXY |
+| **K8s manifests** | CUE → committed YAML (`nix run .#k8s-manifests`) | typed service model shared with images.nix; surfaces can't drift |
+| **PKI** | easyRSA (vendored via Nix) + flake apps (`vpn-init`, `vpn-getclient`) | reproducible CA bootstrap + per-device client export |
+| **CI** | GitHub Actions (flake-check, tests, release-images, pages) | signed-tag release pipeline; compose smoke gate before GHCR push |
+| **Supply chain** | OpenSSF Scorecard + Best Practices, dependency-review, pre-commit.ci, GPG-signed commits/tags | repo hardening aligned with the release posture |
+| **Docs site** | Quarto (`_quarto.yml`), mermaid diagrams, GitHub Pages | docs-as-code from the same repo; this page |
+| **Tests** | pytest (addon unit + clamd env), compose smoke rehearsal | verdict pipeline behavior pinned in CI |
+
+The rule of thumb: if it ships, it is a Nix derivation; if it is a choice, it
+lives in the flake and is reviewable in one place.
+
 ## Transparent mode
 
 `services.opensase.mitmMode = "transparent"` makes the appliance intercept ports 80/443 at the kernel with TPROXY (mangle table fwmark + policy routing), plus `ip_forward`. This never worked inside a Docker bridge; on NixOS it is a first-class systemd `preStart`, so it is reliable — at the cost of requiring the appliance to be the client's default gateway.

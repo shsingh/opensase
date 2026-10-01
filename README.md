@@ -20,7 +20,7 @@ OpenSASE is a TLS-inspection edge. Clients connect over OpenVPN; an mitmproxy ad
 Two halves, one codebase:
 
 1. **The SASE edge** — policy-driven inspection for teams and servers.
-2. **The home appliance** — install it like a [Pi-hole](https://pi-hole.net/) and every family device routes through it: per-device policy and blocking, full traffic visibility, and malware verdicts on what you choose to decrypt. Planned additions — agent (MCP) inspection, DNS-layer policy, short-lived certs, chat (XMPP) with attachment scanning — are tracked in [Future directions](https://shsingh.github.io/opensase/docs/future.html) and on the [roadmap board](https://github.com/users/shsingh/projects/5).
+2. **The home appliance** — install it like a [Pi-hole](https://pi-hole.net/) and every family device routes through it: per-device policy and blocking, full traffic visibility, and malware verdicts on what you choose to decrypt. Planned additions — agent (MCP) inspection, DNS-layer policy, short-lived certs, chat (XMPP) with attachment scanning — are tracked in [Future](https://shsingh.github.io/opensase/docs/future.html) and on the [roadmap board](https://github.com/users/shsingh/projects/5).
 
 The stack is modular by design: the bare-minimum decrypt edge (dnsmasq + openvpn + mitmproxy + policy) stands alone; scanning and future modules layer on as opt-ins (compose profiles are tracked on the roadmap; today the full compose file below is the one deployment).
 
