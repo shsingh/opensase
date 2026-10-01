@@ -33,7 +33,7 @@ website:
         text: Troubleshooting
     right:
       - href: docs/future.qmd
-        text: Future
+        text: Future Directions
       - href: docs/contributing.qmd
         text: Contributing
       - href: docs/security.qmd

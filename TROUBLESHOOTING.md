@@ -1,9 +1,10 @@
 # Troubleshooting
 
-Worked systematically top-down: most edge problems are one of five broken
-links — **tunnel, DNS, HTTP flow, inspection verdicts, or malware scanning.**
-Fix them in that order; don't skip ahead. Every check below is runnable
-against the compose deployment or the NixOS appliance (differences noted).
+Debug systematically in stage order: most edge problems reduce to one of five
+broken links — **tunnel, DNS, HTTP flow, inspection verdicts, or malware
+scanning.** Execute the stages in order; later stages assume the earlier
+ones. Every check is runnable against the compose deployment or the NixOS
+appliance (differences noted).
 
 ## 0. Read the state of the world first
 
