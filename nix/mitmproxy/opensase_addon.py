@@ -137,6 +137,14 @@ class OpensaseAddon:
                 b"OpenSASE: blocked by ClamAV verdict\n",
                 {"content-type": "text/plain"},
             )
+        elif not verdict.startswith("CLEAN"):
+            # Scanner unavailable or erroring: fail closed — never forward a
+            # payload whose verdict is unknown (scanner-down = policy bypass).
+            flow.response = http.Response.make(
+                503,
+                b"OpenSASE: scanner unavailable - payload not forwarded\n",
+                {"content-type": "text/plain", "retry-after": "30"},
+            )
 
     # ---- clamd INSTREAM -----------------------------------------------------
     @staticmethod

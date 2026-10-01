@@ -235,3 +235,34 @@ class TestResponseHook:
         flow.response.headers = {}
         addon.response(flow)
         assert not (tmp_path / "d.jsonl").exists()
+
+
+# ------------------------------------------------- scanner-failure mode ---
+class TestScannerFailClosed:
+    """Scanner unavailable/broken must not silently forward the payload
+    (fail closed per README posture; the fail-open regression is #15's
+    first enforced invariant)."""
+
+    def _flow(self, ctype="application/pdf", content=b"PAYLOAD"):
+        req = types.SimpleNamespace(
+            pretty_host="testsafebrowsing.appspot.com",
+            pretty_url="https://testsafebrowsing.appspot.com/payload",
+        )
+        resp = types.SimpleNamespace(
+            timestamp_end=1.0,
+            headers={"content-type": ctype},
+            raw_content=content,
+        )
+        return types.SimpleNamespace(request=req, response=resp)
+
+    @pytest.mark.parametrize("verdict", ["NOREPLY", "ERROR: timed out"])
+    def test_scan_failure_replaces_with_503(self, tmp_path, monkeypatch, verdict):
+        addon = OpensaseAddon()
+        addon.log_path = str(tmp_path / "d.jsonl")
+        monkeypatch.setattr(addon_mod.OpensaseAddon, "clamd_scan",
+                            staticmethod(lambda c: verdict))
+        flow = self._flow()
+        addon.response(flow)
+        assert flow.response.status_code == 503, "unscannable payload must be blocked, not forwarded"
+        rec = json.loads((tmp_path / "d.jsonl").read_text().splitlines()[-1])
+        assert rec["verdict"] == verdict
