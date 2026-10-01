@@ -78,7 +78,7 @@ def main():
         "     Regenerated at render time (pages.yml). Source of truth: the board. -->",
         "## Plan of record",
         "",
-        f"_Scope for the next two releases, refreshed {datetime.date.today().isoformat()}."
+        f"Scope for the next two releases, refreshed {datetime.date.today().isoformat()}."
         " The full listing, including later targets and parked directions, lives on the"
         " [OpenSASE Roadmap project board](https://github.com/users/shsingh/projects/5).",
         "",

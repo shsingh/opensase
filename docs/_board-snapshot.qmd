@@ -2,7 +2,7 @@
      Regenerated at render time (pages.yml). Source of truth: the board. -->
 ## Plan of record
 
-_Scope for the next two releases, refreshed 2026-10-01. The full listing, including later targets and parked directions, lives on the [OpenSASE Roadmap project board](https://github.com/users/shsingh/projects/5).
+Scope for the next two releases, refreshed 2026-10-01. The full listing, including later targets and parked directions, lives on the [OpenSASE Roadmap project board](https://github.com/users/shsingh/projects/5).
 
 
 | Target | # | Item | Area |
