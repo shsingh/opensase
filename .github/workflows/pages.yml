@@ -1,5 +1,7 @@
 name: pages
 on:
+  schedule:
+    - cron: '17 2 * * *'   # daily: refresh the board snapshot without code changes
   push:
     branches: [master]
     paths:
@@ -35,6 +37,11 @@ jobs:
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@91dabb203fce7f899d10ef8e482d94b00f397cbc # main@2026-06-17
+
+      - name: Build board snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 tests/build_board_snapshot.py
 
       - name: Render site
         run: quarto render

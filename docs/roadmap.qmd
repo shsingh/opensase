@@ -19,18 +19,7 @@ posture without a documented rationale and decision-log evidence (see
 
 ## Snapshot
 
-| # | Item | Area | Target | Status |
-|---|------|------|--------|--------|
-| [#7](https://github.com/shsingh/opensase/issues/7) | v0.1.0: signed tag, first GHCR publish, verified draft release | Release & supply-chain | v0.1.x | planned |
-| [#11](https://github.com/shsingh/opensase/issues/11) | Certificate renewal / rotation workflow (`vpn-renew`, expiry checks, client re-export) | VPN & PKI | v0.1.x | planned |
-| [#15](https://github.com/shsingh/opensase/issues/15) | Fail-mode verdict test suite (splice / bump / INFECTED samples) | Policy & inspection | v0.1.x | planned |
-| [#8](https://github.com/shsingh/opensase/issues/8) | Multi-arch images (amd64 + arm64) | Images | v0.1.x | planned |
-| [#10](https://github.com/shsingh/opensase/issues/10) | Kubernetes hardening overlay (PKI Secret, readiness gate) + deployment docs | Kubernetes | v0.2.x | planned |
-| [#9](https://github.com/shsingh/opensase/issues/9) | Cosign image signing + provenance attestations | Release & supply-chain | v0.2.x | planned |
-| [#14](https://github.com/shsingh/opensase/issues/14) | Remote policy feeds with signed updates + hot reload | Policy & inspection | v0.2.x | planned |
-| [#16](https://github.com/shsingh/opensase/issues/16) | Decision-log export + metrics endpoint | Observability | v0.2.x | planned |
-| [#12](https://github.com/shsingh/opensase/issues/12) | `tls-crypt` by default (blocked on OpenVPN Connect iOS) | VPN & PKI | Later | planned |
-| [#13](https://github.com/shsingh/opensase/issues/13) | IPv6 tunnel + egress (fail-closed against bypass) | VPN & PKI | Later | planned |
+{{< include board-snapshot.qmd >}}
 
 `planned` = open issue on the board's **Todo** column. Move cards there as work
 starts and lands; closed issues drop off this table naturally.

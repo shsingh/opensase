@@ -96,8 +96,10 @@ Releases are **GPG-signed tags**; the release job verifies the signature
 (`git tag -v`) and aborts on an unsigned or badly signed tag:
 
 ```bash
-git tag -s v0.1.0 -m "OpenSASE v0.1.0: initial Nix-built container release"
-git push origin v0.1.0
+VERSION=v0.1.1   # example
+
+git tag -s $VERSION -m "OpenSASE $VERSION: release summary"
+git push origin $VERSION
 ```
 
 The pipeline then builds, smoke-tests, and publishes all four images to GHCR

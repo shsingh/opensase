@@ -70,8 +70,10 @@ The same images build locally: `nix run .#load-images`.
 Releases are GPG-signed tags. The release workflow verifies the tag (`git tag -v`) and refuses to publish unsigned material:
 
 ```bash
-git tag -s v0.1.0 -m "OpenSASE v0.1.0: initial Nix-built container release"
-git push origin v0.1.0
+VERSION=v0.1.1
+
+git tag -s $VERSION -m "OpenSASE $VERSION: release summary"
+git push origin $VERSION
 ```
 
 CI matrix-builds the four images on Linux runners, publishes to GHCR (`:latest` + version), and opens a draft release with generated notes: image-digest table, commit changelog since the previous tag, SPDX SBOMs as assets, and a compose deploy snippet. Review and publish the draft.
@@ -206,7 +208,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for branching, conventional signed commit
 - [x] OpenSSF Scorecard workflow + badge; OpenSSF Best Practices project 15121
 - [x] Kubernetes base manifests, declarative: `k8s/manifests.cue` (CUE) → `nix run .#k8s-manifests`
 - [ ] Kubernetes: hardening overlay (PKI Secret + readiness gate) on the CUE base
-- [ ] First release: tag `v0.1.0` → images to GHCR + draft release
+- [x] First release: `v0.1.1` — images on GHCR (`:latest` + `:0.1.1`), release published, SBOMs attached
 - [ ] VM closure build + boot smoke test (CI, linux runner)
 - [ ] Live verdict verification (EICAR over HTTPS)
 
