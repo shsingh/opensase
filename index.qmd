@@ -73,7 +73,7 @@ flowchart LR
 
 The payoff is uniformity: one lockfile determines the appliance boot, the GHCR images, the compose wiring, and the Kubernetes base manifests. Consumers who never touch Nix still benefit — they pull `dockerTools`-produced images whose every layer is hash-pinned to the same nixpkgs revision CI used.
 
-{{< include docs/board-snapshot.qmd >}}
+{{< include docs/_board-snapshot.qmd >}}
 
 Closed milestones and the narrative reading order: [Roadmap](docs/roadmap.qmd). Candidate directions: [Future](docs/future.qmd).
 

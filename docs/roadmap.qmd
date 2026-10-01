@@ -19,7 +19,7 @@ posture without a documented rationale and decision-log evidence (see
 
 ## Snapshot
 
-{{< include board-snapshot.qmd >}}
+{{< include _board-snapshot.qmd >}}
 
 `planned` = open issue on the board's **Todo** column. Move cards there as work
 starts and lands; closed issues drop off this table naturally.
