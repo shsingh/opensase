@@ -148,7 +148,7 @@ jobs:
       - name: Upload digest for release-notes job
         uses: actions/upload-artifact@v4
         with:
-          name: "digests-${{ matrix.image }}"
+          name: "digests-opensase-${{ matrix.image }}"
           path: "digests-${{ matrix.image }}.txt"
           retention-days: 1
 
