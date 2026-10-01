@@ -25,6 +25,8 @@ flowchart LR
     mitm -- "verdict" --> log
     mitm -- "clean" --> net
     mitm -. "INFECTED: blocked" .-> client
+
+    style edge fill:transparent,stroke:#dc3545,stroke-width:2px
 ```
 
 ## Verdict pipeline
