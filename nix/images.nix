@@ -77,7 +77,8 @@
             # has no PATH that resolves `install`, and no shell for [ ].
             Entrypoint = [
               "${pkgs.writeShellScript "clamav-entry" ''
-                ${pkgs.coreutils}/bin/install -d -m 0755 /var/lib/clamav /tmp /var/run/clamav
+                ${pkgs.coreutils}/bin/install -d -m 0755 -o clamav -g clamav /var/lib/clamav
+                ${pkgs.coreutils}/bin/install -d -m 0755 /tmp /var/run/clamav
                 if [ ! -e /var/lib/clamav/daily.cvd ] && [ -z "''${SKIP_FRESHCLAM:-}" ]; then
                   ${pkgs.clamav}/bin/freshclam --datadir=/var/lib/clamav \
                     --config-file=${./freshclam.conf} || \
