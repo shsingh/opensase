@@ -38,13 +38,15 @@ starts and lands; closed issues drop off this table naturally.
 ## Release & supply-chain
 
 **The first real release is the top priority.** The pipeline is fully wired —
-on a `v*` tag, CI Nix-builds all four images, pushes them to GHCR, records
-digests, attaches SPDX SBOMs, verifies the tag signature, and opens a draft
-release with a digest table and changelog. What has never happened is the tag.
-Until [#7](https://github.com/shsingh/opensase/issues/7) lands, the README's
-`docker compose up` quickstart pulls images that do not exist yet, and the
-[installation failure that started issue #2](https://github.com/shsingh/opensase/issues/2)
-(CentOS 7 EOL killing the legacy Docker build) has no shipped alternative.
+on a `v*` tag, CI Nix-builds all four images, **runs the compose smoke gate**
+(clamd verdicts + decision-log assertions against the freshly built images),
+and only then pushes to GHCR, records digests, attaches SPDX SBOMs, verifies
+the tag signature, and opens a draft release with a digest table and
+changelog. What has never happened is the tag; until
+[#7](https://github.com/shsingh/opensase/issues/7) lands, the quickstart's
+`docker compose pull` has nothing to pull. Manual `workflow_dispatch` is a
+full build + smoke rehearsal with zero registry side effects — rehearsed
+twice already, catching two image runtime defects before any release.
 
 Signing already covers source: commits are signed, releases are signed tags,
 SBOMs are attached. [#9](https://github.com/shsingh/opensase/issues/9) extends
@@ -58,28 +60,29 @@ rather than trusting the registry.
 images. On Apple Silicon or Arm servers — the most common self-hosting hardware
 this project will meet — that means emulation or failure.
 [#8](https://github.com/shsingh/opensase/issues/8) publishes proper
-`amd64` + `arm64` manifest lists, keeping the Nix-built-from-flake property
-(the same flake produces both arches byte-identically) instead of bolting on a
-Dockerfile cross-build path.
+`amd64` + `arm64` manifest lists — the same flake produces both arches,
+byte-identical from source, with no Docker cross-build layer.
 
 ## Kubernetes
 
-The four images are stateless OCI and already stage on Kubernetes under the
-standard contract — `NET_ADMIN` on `openvpn`, `RWO` volumes per service, PKI
-injected before the VPN starts. What is missing is the packaging:
-[#10](https://github.com/shsingh/opensase/issues/10) ships a kustomize overlay
-plus the deployment page (PKI bootstrap order, security contexts per service),
-turning the README's "staging table" promises into a `kubectl apply` path.
+The base manifest layer **exists and is declarative**: `k8s/manifests.cue`
+(CUE, single service model shared with `nix/images.nix`) renders PVCs,
+Services, and Deployments for all four services via
+`nix run .#k8s-manifests` — committed output at `k8s/manifests.yaml`
+(`kubectl apply -f`). What remains is the hardening overlay:
+[#10](https://github.com/shsingh/opensase/issues/10) adds PKI Secret
+injection, readiness gates on the VPN's `server.conf`, and the deployment
+page (bootstrap order, security contexts per service).
 
 ## VPN & PKI
 
-The PKI story today is bootstrap-only: `ovpn_init.sh` builds the CA once, and
-everything after that — cert renewal, CA rotation, client re-provisioning — is
-manual easy-rsa surgery. [#11](https://github.com/shsingh/opensase/issues/11)
-adds the missing lifecycle: a renewal flow that does not silently break
-clients (the
+The PKI tooling is declarative end to end: `nix run .#vpn-init` bootstraps
+the CA (`nix/easyrsa3`), and `nix run .#vpn-getclient -- <cn>` exports a
+per-device profile — no legacy service scripts. What is missing is the
+**lifecycle**: [#11](https://github.com/shsingh/opensase/issues/11) adds
+renewal/rotation (the
 [`tls-auth` HMAC failures in issue #3](https://github.com/shsingh/opensase/issues/3)
-are exactly what an unre-provisioned client looks like after a server-side
+are exactly what an un-re-provisioned client looks like after a server-side
 renewal), an expiry-check command, and documentation of what clients must
 re-provision after each operation type.
 

@@ -74,4 +74,6 @@ No prebuilt manifests yet — a kustomize follow-up is tracked in the README Sta
 
 ## Cloud
 
-`tofu/` carries a pinned OpenTofu skeleton (`nix run .#tofu -- -chdir=tofu plan`). Provision with your provider of choice, deploy with `nixos-rebuild --target-host`; provider shapes are tracked as an open item.
+Cloud provisioning stays external: pin your OpenTofu/Terraform provider of
+choice against the appliance (`nixos-rebuild switch --flake .#opensase --target-host root@<ip>`);
+provider shapes are tracked as an open item in the README status list.

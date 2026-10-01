@@ -52,7 +52,7 @@ flowchart LR
     mitm -. "INFECTED: blocked + logged" .-> client
 ```
 
-Verdict order: **passlist** (splice, no decrypt) → **bumplist** (decrypt + scan) → default bump. Every verdict — `splice`, `bump`, `clean`, `INFECTED` — is written to `/data/log/decisions.jsonl`. The cICAP layer of the original design was dropped; the addon speaks clamd's INSTREAM protocol directly.
+Verdict order: **passlist** (splice, no decrypt) → **bumplist** (decrypt + scan) → default bump. Every verdict — `splice`, `bump`, `clean`, `INFECTED` — is written to `/data/log/decisions.jsonl`. The addon speaks clamd's INSTREAM protocol directly.
 
 ## Release artifacts
 
@@ -88,12 +88,7 @@ docker compose -p opensase up -d
 The OpenVPN server requires a PKI before it starts:
 
 ```bash
-# Option A: with Nix on the machine (one-time CA bootstrap into ./state/openvpn)
-nix run .#vpn-init
-
-# Option B: container-only bootstrap
-# run EasyRSA in the openvpn image against a scratch mount, or supply your own
-# server.conf + PKI into the `openvpn_priv` volume
+nix run .#vpn-init     # one-time CA bootstrap into ./state/openvpn
 ```
 
 Copy `./state/openvpn/*` into the `openvpn_priv` volume and restart the `openvpn` service. Point a client at `udp/5443` and an explicit proxy at `<host>:8080`.
@@ -123,7 +118,10 @@ To add the edge to an existing NixOS host, import `nix/appliance.nix` — it com
 
 ## Kubernetes
 
-Prebuilt cluster manifests are **not shipped yet**; the legacy k8s YAML was removed in favour of these images, and a follow-up will add kustomize overlays. The images are stateless OCI from `dockerTools` and stage cleanly on Kubernetes with the standard contract:
+Declarative base manifests are committed: `k8s/manifests.cue` is the single
+service model (rendered to `k8s/manifests.yaml` by
+`nix run .#k8s-manifests`, or `cue export ./k8s -e list --out yaml` — apply
+with `kubectl apply -f k8s/manifests.yaml`). The service contract:
 
 | Container | Image | Capabilities | Persistent volume |
 |---|---|---|---|
@@ -206,11 +204,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for branching, conventional signed commit
 - [x] Compose deployment for non-Nix users (Linux/macOS/Windows)
 - [x] Quarto docs site → GitHub Pages
 - [x] OpenSSF Scorecard workflow + badge; OpenSSF Best Practices project 15121
-- [ ] Kubernetes: kustomize overlays + readiness gate on the OpenVPN PKI
+- [x] Kubernetes base manifests, declarative: `k8s/manifests.cue` (CUE) → `nix run .#k8s-manifests`
+- [ ] Kubernetes: hardening overlay (PKI Secret + readiness gate) on the CUE base
 - [ ] First release: tag `v0.1.0` → images to GHCR + draft release
 - [ ] VM closure build + boot smoke test (CI, linux runner)
 - [ ] Live verdict verification (EICAR over HTTPS)
-- [ ] Tofu provider shapes (hcloud/aws)
 
 ## Credits
 

@@ -188,10 +188,8 @@ nature. Keep that in mind when testing.
 - **Interception material is sensitive.** The mitmproxy CA private key, the
   OpenVPN CA and its PKI, and the JSONL decision log (which records hosts and
   categories of browsed traffic) must all be treated as secret material.
-- **Test data only.** The committed PKI, client certificates and keys under
-  `openvpn/`, `squid/` are deliberate lab fixtures (see README: *do not run
-  unmodified in production*). Do not report them as leaked credentials — but do
-  never reuse them anywhere real.
+  Nothing is committed: PKI material lives in `./state/` (gitignored) or in
+  volumes. Do not commit or paste real key material in issues or PRs.
 - **Policy bypass is a vulnerability class here.** A bug that silently skips the
   splice/bump verdict chain, blocks clamd from returning a verdict (fail-open),
   or drops decision-log lines is a security bug, not a cosmetic one.

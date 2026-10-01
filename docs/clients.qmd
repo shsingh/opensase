@@ -8,7 +8,8 @@ After the tunnel and CA are in place, clients need two things: the OpenVPN profi
 
 ```bash
 # from the bootstrap dir (nix path) or the openvpn_priv volume (compose path)
-ls state/openvpn/          # client .ovpn profiles
+nix run .#vpn-getclient -- device-laptop      # prints the .ovpn to stdout
+ls state/openvpn/                             # server.conf, pki/
 ```
 
 The CA (`server.crt` / the cert of the bump CA) is what browsers must trust — TLS interception resigns every non-passlisted site.

@@ -29,7 +29,7 @@ carries Area/Target per card.
 ## Home appliance: per-device policy + family visibility
 
 Devices are identified by their VPN client certificate CN;
-[`ovpn_getclient.sh`](https://github.com/shsingh/opensase/blob/master/openvpn/bin/ovpn_getclient.sh)
+[`nix run .#vpn-getclient`](https://github.com/shsingh/opensase#client-setup)
 already produces per-device profiles — policy just reads the CN. Passlist /
 bumplist decisions gain an optional device dimension: kids' tablet gets
 social-media blocked after 8pm, parents' laptop splices everything. A

@@ -1,11 +1,8 @@
-# OpenSASE appliance -- the whole SASE stack as NixOS module wiring.
-#
-# Replaces docker-compose.yml + the CentOS 7 Dockerfiles:
+# OpenSASE appliance -- the whole SASE stack as NixOS module wiring:
 #   dnsmasq  -> services.dnsmasq
 #   clamav   -> services.clamav (daemon, verdicts via clamd INSTREAM)
-#   cicap    -> DROPPED (mitmproxy addon talks to clamd directly)
-#   squid    -> replaced by services.opensase (mitmproxy decrypt/re-encrypt)
 #   openvpn  -> services.openvpn (certs bootstrapped by `nix run .#vpn-init`)
+#   mitmproxy -> services.opensase (decrypt/re-encrypt on URL category)
 { config, lib, pkgs, ... }:
 
 let

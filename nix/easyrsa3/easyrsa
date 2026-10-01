@@ -643,14 +643,14 @@ $(display_dn req "$req_in")
 		# add one to the extensions file
 		if [[ "$crt_type" == 'server' ]]
 		then
-			echo "$EASYRSA_EXTRA_EXTS" | 
-				grep -q subjectAltName || 
+			echo "$EASYRSA_EXTRA_EXTS" |
+				grep -q subjectAltName ||
 				print $(default_server_san "$req_in")
 		fi
 
 		# Add any advanced extensions supplied by env-var:
 		[ -n "$EASYRSA_EXTRA_EXTS" ] && print "$EASYRSA_EXTRA_EXTS"
-		
+
 		: # needed to keep die from inherting the above test
 	} > "$EASYRSA_TEMP_FILE" || die "\
 Failed to create temp extension file (bad permissions?) at:
@@ -773,7 +773,7 @@ import_req() {
 
 	# pull passed paths
 	local in_req="$1" short_name="$2"
-	local out_req="$EASYRSA_PKI/reqs/$2.req" 
+	local out_req="$EASYRSA_PKI/reqs/$2.req"
 
 	[ -n "$short_name" ] || die "\
 Unable to import: incorrect command syntax.
@@ -788,7 +788,7 @@ Offending file: $in_req"
 Unable to import the request as the destination file already exists.
 Please choose a different name for your imported request file.
 Existing file at: $out_req"
-	
+
 	# now import it
 	cp "$in_req" "$out_req"
 
@@ -915,7 +915,7 @@ Failed to change the private key passphrase. See above for possible openssl
 error messages."
 
 	notice "Key passphrase successfully changed"
-	
+
 } # => set_pass()
 
 # update-db backend
@@ -1031,7 +1031,7 @@ vars_setup() {
 	elif [ -f "$prog_vars" ]; then
 		vars="$prog_vars"
 	fi
-	
+
 	# If a vars file was located, source it
 	# If $EASYRSA_NO_VARS is defined (not blank) this is skipped
 	if [ -z "$EASYRSA_NO_VARS" ] && [ -n "$vars" ]; then
@@ -1039,7 +1039,7 @@ vars_setup() {
 		notice "\
 Note: using Easy-RSA configuration from: $vars"
 	fi
-	
+
 	# Set defaults, preferring existing env-vars if present
 	set_var EASYRSA		"${0%/*}"
 	set_var EASYRSA_OPENSSL	openssl

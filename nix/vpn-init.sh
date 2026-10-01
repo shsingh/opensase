@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # OpenSASE -- bootstrap the OpenVPN CA + server/client certificates.
-# Uses the repo's EasyRSA 3 copy; generated material lands in
+# Uses the repo's EasyRSA 3 copy (nix/easyrsa3); generated material lands in
 # ./state/openvpn (gitignored). Idempotent: skips when PKI exists.
 set -euo pipefail
 
@@ -29,7 +29,12 @@ cd "$EASYRSA"
 ./easyrsa --batch build-client-full client01 nopass
 ./easyrsa --batch gen-crl
 
-# Server config the appliance's openvpn unit consumes.
+# tls-auth static key: embedded in client profiles; referenced by the
+# appliance server config. (tls-crypt is tracked in issue #12.)
+openssl rand 256 > "$EASYRSA_PKI/tc.key"
+
+# Server config consumed by the appliance unit and by compose
+# (openvpn_priv volume).
 cat > "$DEST/server.conf" <<EOF
 port 5443
 proto udp
@@ -39,6 +44,8 @@ cert pki/issued/server.crt
 key pki/private/server.key
 dh pki/dh.pem
 crl-verify pki/crl.pem
+tls-auth pki/tc.key 0
+key-direction 0
 server 10.128.81.0 255.255.255.0
 push "redirect-gateway def1 bypass-dhcp"
 push "dhcp-option DNS 192.168.50.2"
@@ -52,6 +59,6 @@ verb 4
 EOF
 
 echo "opensase-vpn-init: OK"
-echo "  next: copy $DEST to the appliance /var/lib/opensase/openvpn and"
-echo "        systemctl start openvpn-opensase"
-echo "  client cert: $DEST/pki/issued/client01.crt"
+echo "  server config: $DEST/server.conf"
+echo "  client cert:   $DEST/pki/issued/client01.crt"
+echo "  next: export a device profile with \`nix run .#vpn-getclient -- <cn>\`"

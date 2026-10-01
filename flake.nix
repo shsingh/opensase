@@ -44,12 +44,6 @@
           } // imagesOut;
 
           apps = {
-            # `nix run .#tofu -- plan` -- pinned OpenTofu for tofu/ provisioning.
-            tofu = {
-              type = "app";
-              program = "${pkgs.opentofu}/bin/tofu";
-            };
-
             # `nix run .#vm` -- boot the appliance VM (needs KVM; on a
             # macOS/Nix-less host use the GHCR + compose path instead).
             vm = {
@@ -69,10 +63,37 @@
                 name = "opensase-vpn-init";
                 runtimeInputs = with pkgs; [ coreutils openssl ];
                 text = ''
-                  export EASYRSA_SRC=${./openvpn/easyrsa3}
+                  export EASYRSA_SRC=${./nix/easyrsa3}
                   exec ${./nix/vpn-init.sh} "$@"
                 '';
               })}/bin/opensase-vpn-init";
+            };
+
+            # `nix run .#vpn-getclient -- <cn> [state-dir] [remote]` --
+            # export a device profile (.ovpn) from the vpn-init PKI.
+            vpn-getclient = {
+              type = "app";
+              program = "${(pkgs.writeShellApplication {
+                name = "opensase-vpn-getclient";
+                runtimeInputs = with pkgs; [ coreutils openssl ];
+                text = ''
+                  exec ${./nix/vpn-getclient.sh} "$@"
+                '';
+              })}/bin/opensase-vpn-getclient";
+            };
+
+            # `nix run .#k8s-manifests` -- render the Kubernetes base
+            # manifests (k8s/manifests.cue) to k8s/manifests.yaml.
+            k8s-manifests = {
+              type = "app";
+              program = "${(pkgs.writeShellApplication {
+                name = "opensase-k8s-manifests";
+                runtimeInputs = with pkgs; [ cue coreutils ];
+                text = ''
+                  cue export ./k8s -e list --out yaml > k8s/manifests.yaml
+                  echo "opensase-k8s-manifests: wrote k8s/manifests.yaml"
+                '';
+              })}/bin/opensase-k8s-manifests";
             };
 
             # `nix run .#load-images` -- build all Nix-built OCI images and
@@ -95,9 +116,9 @@
           };
 
           devShells.default = pkgs.mkShell {
-            packages = with pkgs; [ opentofu python3 python3Packages.mitmproxy ];
+            packages = with pkgs; [ opentofu python3 python3Packages.mitmproxy cue ];
             shellHook = ''
-              echo "OpenSASE dev shell: tofu (infra), mitmdump (addon dev), nixos-rebuild (appliance)"
+              echo "OpenSASE dev shell: tofu (infra), mitmdump (addon dev), cue (k8s manifests), nixos-rebuild (appliance)"
             '';
           };
         };
