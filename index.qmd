@@ -18,6 +18,15 @@ subtitle: "Self-hosted SASE-style TLS inspection, declared end-to-end with Nix"
 
 OpenSASE is an open, self-hosted SASE-style edge, deployed from one source of truth: a Nix flake. Clients connect over OpenVPN; an mitmproxy addon decrypts and re-encrypts traffic per a URL-category policy; every payload is scanned by ClamAV; every verdict — `splice`, `bump`, `clean`, `INFECTED` — is written to a JSONL decision log.
 
+```{mermaid}
+flowchart LR
+    client["VPN client"] --> vpn["openvpn udp/5443"]
+    vpn --> mitm["mitmproxy<br/>splice | bump per URL category"]
+    mitm --> clam["clamd :3310"]
+    mitm --> log[("decisions.jsonl")]
+    mitm --> net((Internet))
+```
+
 It is growing two halves: the **SASE edge** for teams and servers, and a **home appliance** — install it like a Pi-hole and every family device routes through it, with per-device policy, traffic visibility, and verdicts. The stack stays modular: the bare-minimum decrypt edge stands alone; scanner, DNS-policy, agent-inspection, and chat modules layer on as opt-ins. The planned shapes live in [Future directions](docs/future.qmd); the working tracker is the [Roadmap](docs/roadmap.qmd).
 
 Two deployment paths:
@@ -40,32 +49,42 @@ The same stack as stock NixOS modules: build a QEMU VM, `nixos-rebuild` a physic
 
 Prebuilt manifests are not shipped yet (a kustomize follow-up is tracked). The four images are stateless OCI and stage on Kubernetes with the standard contract — `NET_ADMIN` on `openvpn`, `RWO` volumes per service, PKI injected before the VPN starts. See the [README Kubernetes section](https://github.com/shsingh/opensase#kubernetes) for the staging table and constraints.
 
-## Why Nix end-to-end
+## Purely declarative
 
-- **No floating bases.** Every image and appliance closure is a hash-pinned derivation from one nixpkgs revision — CI builds what you build, byte-identical.
-- **Declare, don't assemble.** The appliance is `services.clamav` + `services.dnsmasq` + `services.openvpn` + `services.opensase`, not five hand-maintained Dockerfiles.
-- **Portability for non-Nix users.** Consumers pull the GHCR images `dockerTools` produced; no Nix anywhere in their path.
+Every deployable artifact is derived, not hand-maintained. There is no `docker build` anywhere in the repo's release path — the same flake that boots the appliance emits the containers, so what you run as a container is exactly what NixOS would run, byte-for-byte.
 
 ```{mermaid}
 flowchart LR
-    client["VPN client"] --> vpn["openvpn udp/5443"]
-    vpn --> mitm["mitmproxy<br/>splice | bump per URL category"]
-    mitm --> clam["clamd :3310"]
-    mitm --> log[("decisions.jsonl")]
-    mitm --> net((Internet))
+    flake["flake.nix<br/>single source of truth"] --> imgs["nix/images.nix<br/>dockerTools.buildLayeredImage"]
+    flake --> appl["nix/appliance.nix<br/>NixOS module"]
+    flake --> cue["k8s/manifests.cue"]
+    imgs --> ghcr["ghcr.io/shsingh/opensase-*<br/>(:latest + version)"]
+    appl --> ghcr
+    cue --> manifests["k8s/manifests.yaml<br/>(cue export, committed)"]
+    imgs --> compose["docker-compose.yml"]
 ```
 
-## Status
+**One flake, four surfaces.** The flake is the only place versions, image references, ports, capabilities, and volume paths are declared; everything else consumes it:
 
-| Piece | State |
-|---|---|
-| NixOS flake (appliance + QEMU VMs) | `nix flake check --all-systems` clean |
-| OCI images via `dockerTools` | built; release workflow in place |
-| GHCR publish + SBOM | wired on `v*` tags; first release pending |
-| Quarto docs site | this site |
-| OpenSSF Scorecard | workflow live; Best Practices project 15121 registered |
-| Kubernetes | images stage cleanly; kustomize overlays TODO |
-| VM boot smoke test | CI TODO |
-| Live EICAR verification | TODO |
+- **OCI containers without Dockerfiles.** Each service is a `pkgs.dockerTools.buildLayeredImage` derivation (`nix/images.nix`): the store path for the binary, a minimal closure, the few files a bare image lacks (`/etc/passwd`, CA certs, `/tmp`). Because images are hashes of inputs rather than layers of imperative `RUN` statements, CI and a local `nix run .#load-images` produce byte-identical images — nothing floats, no base image is ever pulled at release time.
+- **The appliance is modules, not scripts.** `nix/appliance.nix` composes stock NixOS services — `services.openvpn`, `services.dnsmasq`, `services.clamav`, plus `services.opensase` (the mitmproxy addon + decision log) — so the appliance is defined, not assembled, and every knob is a typed NixOS option checkable by `nix flake check`.
+- **Kubernetes manifests as CUE.** The same service model (images, ports, capabilities, volumes) is expressed once in `k8s/manifests.cue` with a typed schema; `nix run .#k8s-manifests` (`cue export ./k8s -e list`) renders the committed `k8s/manifests.yaml`. CUE was chosen over hand-written YAML or Helm because the constraints live next to the data: a service that needs `NET_ADMIN` must declare it in type, so compose, the appliance, and Kubernetes cannot drift apart.
+- **PKI in the flake too.** CA bootstrap and per-device client profiles come from flake apps (`vpn-init`, `vpn-getclient`) that vendor easyRSA via Nix — no `curl | bash`, no drifting helper scripts.
+
+The payoff is uniformity: one lockfile determines the appliance boot, the GHCR images, the compose wiring, and the Kubernetes base manifests. Consumers who never touch Nix still benefit — they pull `dockerTools`-produced images whose every layer is hash-pinned to the same nixpkgs revision CI used.
+
+## What's next
+
+Work is tracked as issues on the [OpenSASE Roadmap project board](https://github.com/users/shsingh/projects/5) — the narrative version lives on the [Roadmap](docs/roadmap.qmd) page. The v0.1.x shortlist:
+
+| # | Item |
+|---|------|
+| [#7](https://github.com/shsingh/opensase/issues/7) | v0.1.0: signed tag, first GHCR publish, verified draft release |
+| [#11](https://github.com/shsingh/opensase/issues/11) | VPN: certificate renewal / rotation workflow (`vpn-renew`, expiry checks, client re-export) |
+| [#25](https://github.com/shsingh/opensase/issues/25) | DNS-layer policy: dnsmasq RPZ + query logging into the decision log |
+| [#15](https://github.com/shsingh/opensase/issues/15) | Policy: fail-mode verdict test suite (splice / bump / INFECTED samples) |
+| [#8](https://github.com/shsingh/opensase/issues/8) | Images: multi-arch (amd64 + arm64) GHCR images |
+
+Everything else — cosign signing, Kubernetes overlays, observability exports, identity, QUIC — is queued on the board with an Area (component) and a Target (`v0.1.x` / `v0.2.x` / `Later`).
 
 Read the [architecture](docs/architecture.qmd) overview, or go to [deployment](docs/deployment.qmd). Project direction: [Roadmap](docs/roadmap.qmd) · [Future directions](docs/future.qmd). Operations help: [Troubleshooting](docs/troubleshooting.qmd). Contributing, security policy, code of conduct: [CONTRIBUTING](https://github.com/shsingh/opensase/blob/master/CONTRIBUTING.md) · [SECURITY](https://github.com/shsingh/opensase/blob/master/SECURITY.md) · [CoC](https://github.com/shsingh/opensase/blob/master/CODE_OF_CONDUCT.md).
