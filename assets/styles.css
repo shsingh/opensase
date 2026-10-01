@@ -3,11 +3,15 @@
   font-weight: 700;
   letter-spacing: 0.3px;
 }
-/* mermaid diagrams: keep them readable on dark navbar theme */
+/* mermaid diagrams: no card, no tint — inherit the page background exactly so the
+   diagram canvas never contrasts with its surroundings */
 .mermaid {
-  background: #f8f9fa;
-  border-radius: 6px;
-  padding: 1rem;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+}
+.mermaid svg {
+  background: transparent;
 }
 /* wide SVGs (mermaid flowcharts) don't stretch on mobile */
 img.figure-img,
