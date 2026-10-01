@@ -73,18 +73,8 @@ flowchart LR
 
 The payoff is uniformity: one lockfile determines the appliance boot, the GHCR images, the compose wiring, and the Kubernetes base manifests. Consumers who never touch Nix still benefit — they pull `dockerTools`-produced images whose every layer is hash-pinned to the same nixpkgs revision CI used.
 
-## What's next
+{{< include docs/board-snapshot.qmd >}}
 
-Work is tracked as issues on the [OpenSASE Roadmap project board](https://github.com/users/shsingh/projects/5) — the narrative version lives on the [Roadmap](docs/roadmap.qmd) page. The v0.1.x shortlist:
-
-| # | Item |
-|---|------|
-| [#7](https://github.com/shsingh/opensase/issues/7) | v0.1.0: signed tag, first GHCR publish, verified draft release |
-| [#11](https://github.com/shsingh/opensase/issues/11) | VPN: certificate renewal / rotation workflow (`vpn-renew`, expiry checks, client re-export) |
-| [#25](https://github.com/shsingh/opensase/issues/25) | DNS-layer policy: dnsmasq RPZ + query logging into the decision log |
-| [#15](https://github.com/shsingh/opensase/issues/15) | Policy: fail-mode verdict test suite (splice / bump / INFECTED samples) |
-| [#8](https://github.com/shsingh/opensase/issues/8) | Images: multi-arch (amd64 + arm64) GHCR images |
-
-Everything else — cosign signing, Kubernetes overlays, observability exports, identity, QUIC — is queued on the board with an Area (component) and a Target (`v0.1.x` / `v0.2.x` / `Later`).
+Closed milestones and the narrative reading order: [Roadmap](docs/roadmap.qmd). Candidate directions: [Future](docs/future.qmd).
 
 Read the [architecture](docs/architecture.qmd) overview, or go to [deployment](docs/deployment.qmd). Project direction: [Roadmap](docs/roadmap.qmd) · [Future](docs/future.qmd). Operations help: [Troubleshooting](docs/troubleshooting.qmd). Contributing, security policy, code of conduct: [CONTRIBUTING](https://github.com/shsingh/opensase/blob/master/CONTRIBUTING.md) · [SECURITY](https://github.com/shsingh/opensase/blob/master/SECURITY.md) · [CoC](https://github.com/shsingh/opensase/blob/master/CODE_OF_CONDUCT.md).
