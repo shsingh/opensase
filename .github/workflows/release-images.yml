@@ -1,4 +1,8 @@
 name: release-images
+# Build -> smoke -> publish. The smoke gate runs the real compose stack from
+# the freshly built images (clamd verdicts + decision-log assertions) BEFORE
+# anything is pushed: a failing smoke blocks the release. Merge-path CI is
+# never slowed by this file -- it only fires on v* tags and manual dispatch.
 on:
   push:
     tags: [ 'v*' ]
@@ -8,8 +12,11 @@ permissions:
   contents: write        # draft release + release notes + SBOM assets
   packages: write        # push images to GHCR
 
+env:
+  OWNER: ${{ github.repository_owner }}
+
 jobs:
-  build-push:
+  build-images:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -21,25 +28,98 @@ jobs:
 
       - uses: DeterminateSystems/nix-installer-action@v16
 
-      - name: Log in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
       - name: Build OCI image from flake
         run: nix build ".#image-${{ matrix.image }}" --out-link result-img
 
+      - name: Stage image tarball
+        run: cp result-img "opensase-${{ matrix.image }}-image.tar"
+
+      - name: Upload image artifact for downstream jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: "image-${{ matrix.image }}"
+          path: "opensase-${{ matrix.image }}-image.tar"
+          retention-days: 1
+
+  smoke-stack:
+    needs: [build-images]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download built image artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: 'image-*'
+          path: images
+          merge-multiple: true
+
+      - name: Load images into the local docker daemon
+        run: |
+          for img in dnsmasq clamav mitmproxy openvpn; do
+            docker load < "images/opensase-${img}-image.tar"
+            docker image inspect "opensase-${img}:latest" --format "loaded $img {{.Id}}"
+          done
+
+      - name: Start the stack from the smoke override
+        run: |
+          docker compose -p opensase \
+            -f docker-compose.yml -f tests/smoke-override.yml \
+            up -d --wait --wait-timeout 120
+          docker compose -p opensase ps
+
+      - name: Wait for clamd, then assert both verdicts (INSTREAM)
+        run: |
+          python3 tests/instream_probe.py --host 127.0.0.1 --port 3310 --wait 600
+
+      - name: Decision-log assertions through the proxy path
+        run: |
+          # explicit-proxy CONNECT through mitmproxy: example.com is on the
+          # passlist (splice, tunneled), wikipedia.org is unlisted (bump)
+          curl -sk --max-time 60 -x http://127.0.0.1:8080 https://example.com -o /dev/null
+          curl -sk --max-time 60 -x http://127.0.0.1:8080 https://www.wikipedia.org -o /dev/null
+          docker compose -p opensase cp mitmproxy:/data/log/decisions.jsonl ./decisions.jsonl
+          echo "--- decisions.jsonl ---"; cat decisions.jsonl
+          grep -q '"host": "example.com"' decisions.jsonl && grep -q '"verdict": "splice"' decisions.jsonl
+          grep -q '"host": "www.wikipedia.org"' decisions.jsonl && grep -q '"verdict": "bump"' decisions.jsonl
+          echo "DECISION-LOG: PASS"
+
+      - name: Dump stack logs on failure
+        if: failure()
+        run: docker compose -p opensase logs --tail=100
+
+  publish-images:
+    needs: [smoke-stack]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: [dnsmasq, clamav, mitmproxy, openvpn]
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: "image-${{ matrix.image }}"
+          path: .
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - name: Load, tag, push
         run: |
-          docker load < result-img
+          docker load < "opensase-${{ matrix.image }}-image.tar"
           VERSION="${GITHUB_REF_NAME#v}"
           for tag in latest "$VERSION"; do
             docker tag "opensase-${{ matrix.image }}:latest" \
-              "ghcr.io/${{ github.repository_owner }}/opensase-${{ matrix.image }}:$tag"
-            docker push "ghcr.io/${{ github.repository_owner }}/opensase-${{ matrix.image }}:$tag"
+              "ghcr.io/${OWNER}/opensase-${{ matrix.image }}:$tag"
+            docker push "ghcr.io/${OWNER}/opensase-${{ matrix.image }}:$tag"
           done
 
       - name: Record pushed digest
         run: |
-          docker inspect "ghcr.io/${{ github.repository_owner }}/opensase-${{ matrix.image }}:${GITHUB_REF_NAME#v}" \
+          docker inspect "ghcr.io/${OWNER}/opensase-${{ matrix.image }}:${GITHUB_REF_NAME#v}" \
             --format '{{index .RepoDigests 0}}' > "digests-${{ matrix.image }}.txt"
           cat "digests-${{ matrix.image }}.txt"
 
@@ -59,7 +139,7 @@ jobs:
           retention-days: 1
 
   release-notes:
-    needs: [build-push]
+    needs: [publish-images]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,6 +168,8 @@ jobs:
             echo "SASE-style TLS inspection edge: OpenVPN → mitmproxy (decrypt/re-encrypt on URL category) → ClamAV → decision log."
             echo
             echo "### Nix-built OCI images — pull and \`docker compose up\` (no Nix needed)"
+            echo
+            echo "Images passed the release smoke gate (clamd verdicts + decision-log assertions) before publication."
             echo
             echo "| Image | Version tag | Digest |"
             echo "|---|---|---|"

@@ -13,6 +13,7 @@ replaced with a 403.
 """
 import ipaddress  # noqa: F401  (kept for future client-geo policy)
 import json
+import os
 import socket
 from pathlib import Path
 
@@ -27,7 +28,12 @@ SCAN_TYPES = {
     "application/x-msdownload",
 }
 
-CLAMD_ADDR = ("127.0.0.1", 3310)
+# clamd endpoint: env overrides for container deployments where clamd is a
+# separate container (compose/k8s); defaults match the single-host appliance.
+CLAMD_ADDR = (
+    os.environ.get("CLAMD_HOST", "127.0.0.1"),
+    int(os.environ.get("CLAMD_PORT", "3310")),
+)
 
 
 class OpensaseAddon:
