@@ -27,7 +27,7 @@ flowchart LR
     mitm --> net((Internet))
 ```
 
-It is growing two halves: the **SASE edge** for teams and servers, and a **home appliance** — install it like a Pi-hole and every family device routes through it, with per-device policy, traffic visibility, and verdicts. The stack stays modular: the bare-minimum decrypt edge stands alone; scanner, DNS-policy, agent-inspection, and chat modules layer on as opt-ins. The planned shapes live in [Future directions](docs/future.qmd); the working tracker is the [Roadmap](docs/roadmap.qmd).
+It is growing two halves: the **SASE edge** for teams and servers, and a **home appliance** — install it like a Pi-hole and every family device routes through it, with per-device policy, traffic visibility, and verdicts. The stack stays modular: the bare-minimum decrypt edge stands alone; scanner, DNS-policy, agent-inspection, and chat modules layer on as opt-ins. The planned shapes live in [Future](docs/future.qmd); the working tracker is the [Roadmap](docs/roadmap.qmd).
 
 Two deployment paths:
 
@@ -87,4 +87,4 @@ Work is tracked as issues on the [OpenSASE Roadmap project board](https://github
 
 Everything else — cosign signing, Kubernetes overlays, observability exports, identity, QUIC — is queued on the board with an Area (component) and a Target (`v0.1.x` / `v0.2.x` / `Later`).
 
-Read the [architecture](docs/architecture.qmd) overview, or go to [deployment](docs/deployment.qmd). Project direction: [Roadmap](docs/roadmap.qmd) · [Future directions](docs/future.qmd). Operations help: [Troubleshooting](docs/troubleshooting.qmd). Contributing, security policy, code of conduct: [CONTRIBUTING](https://github.com/shsingh/opensase/blob/master/CONTRIBUTING.md) · [SECURITY](https://github.com/shsingh/opensase/blob/master/SECURITY.md) · [CoC](https://github.com/shsingh/opensase/blob/master/CODE_OF_CONDUCT.md).
+Read the [architecture](docs/architecture.qmd) overview, or go to [deployment](docs/deployment.qmd). Project direction: [Roadmap](docs/roadmap.qmd) · [Future](docs/future.qmd). Operations help: [Troubleshooting](docs/troubleshooting.qmd). Contributing, security policy, code of conduct: [CONTRIBUTING](https://github.com/shsingh/opensase/blob/master/CONTRIBUTING.md) · [SECURITY](https://github.com/shsingh/opensase/blob/master/SECURITY.md) · [CoC](https://github.com/shsingh/opensase/blob/master/CODE_OF_CONDUCT.md).
