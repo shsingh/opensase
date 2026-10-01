@@ -132,11 +132,16 @@ jobs:
             --format '{{index .RepoDigests 0}}' > "digests-${{ matrix.image }}.txt"
           cat "digests-${{ matrix.image }}.txt"
 
-      # Supply-chain hygiene: SBOM artifact for each release tag.
+      # Supply-chain hygiene: SBOM per release tag. Syft resolves the image
+      # by tag; GHCR holds the version WITHOUT the v prefix, so compute it
+      # once into the job environment.
+      - name: Compute version tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
       - name: Generate SBOM (SPDX)
         uses: anchore/sbom-action@v0
         with:
-          image: "ghcr.io/${{ github.repository_owner }}/opensase-${{ matrix.image }}:${{ github.ref_name }}"
+          image: "ghcr.io/${{ github.repository_owner }}/opensase-${{ matrix.image }}:${{ env.VERSION }}"
           format: spdx-json
           artifact-name: "sbom-opensase-${{ matrix.image }}.spdx.json"
 
@@ -164,9 +169,15 @@ jobs:
           path: assets
           merge-multiple: true
 
+      - name: Import maintainer public key (pinned fingerprint, keys.openpgp.org)
+        run: |
+          curl -fsSL "https://keys.openpgp.org/vks/v1/by-fingerprint/9CB1781DC2BB28D37A0155DCAAF8226F3F4C1712" | gpg --import
+          gpg --list-keys 9CB1781DC2BB28D37A0155DCAAF8226F3F4C1712
+
       - name: Verify tags are signed (fail the release otherwise)
         run: |
-          git tag -v "${GITHUB_REF_NAME}" 2>&1 | grep -q "Good signature" \
+          git tag -v "${GITHUB_REF_NAME}" 2>&1 | tee /tmp/tagv.log
+          grep -q "Good signature" /tmp/tagv.log \
             || { echo "::error::tag ${GITHUB_REF_NAME} is not a verified GPG-signed tag"; exit 1; }
 
       - name: Build release notes
