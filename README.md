@@ -15,7 +15,14 @@
 
 Open, self-hosted **S**ecure **A**ccess **S**ervice **E**dge components built from OSS tooling, declared end-to-end with [Nix](https://nixos.org/).
 
-OpenSASE is a TLS-inspection edge. Clients connect over OpenVPN; an mitmproxy addon decrypts and re-encrypts traffic per a URL-category policy; every payload is scanned by ClamAV; every verdict is written to a JSONL decision log.
+OpenSASE is a TLS-inspection edge. Clients connect over OpenVPN; an mitmproxy addon decrypts and re-encrypts traffic per a URL-category policy; every payload is scanned by ClamAV; every verdict is written to a JSONL decision log. Run it from a Raspberry Pi to a rack server, for a team or for a household.
+
+Two halves, one codebase:
+
+1. **The SASE edge** — policy-driven inspection for teams and servers.
+2. **The home appliance** — install it like a [Pi-hole](https://pi-hole.net/) and every family device routes through it: per-device policy and blocking, full traffic visibility, and malware verdicts on what you choose to decrypt. Planned additions — agent (MCP) inspection, DNS-layer policy, short-lived certs, chat (XMPP) with attachment scanning — are tracked in [Future directions](https://shsingh.github.io/opensase/docs/future.html) and on the [roadmap board](https://github.com/users/shsingh/projects/5).
+
+The stack is modular by design: the bare-minimum decrypt edge (dnsmasq + openvpn + mitmproxy + policy) stands alone; scanning and future modules layer on as opt-ins (compose profiles are tracked on the roadmap; today the full compose file below is the one deployment).
 
 Two deployment paths, one source of truth:
 
@@ -180,9 +187,13 @@ Download the [EICAR test file](https://www.eicar.org/download-anti-malware-testf
 - TLS 1.2, elliptic-curve certificates, DHE, tls-crypt.
 - **Not for production as-is** — this is a lab/testing appliance. TLS interception is a high-value target; review bump/splice policy before extending.
 
+## Troubleshooting
+
+Start at [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — a stages ladder (tunnel → DNS → HTTP flow → verdicts → scanning) with `tcpdump`/`tshark`/`jq` commands at each stage, what the decision log should show, and the cert-trust gotchas (device clocks, CA installation, the #3 HMAC family).
+
 ## Docs
 
-Full documentation site (architecture, deployment, policy, CI): **https://shsingh.github.io/opensase/** — Quarto, built from `docs/`.
+Full documentation site (architecture, deployment, policy, CI, roadmap, troubleshooting, future directions): **https://shsingh.github.io/opensase/** — Quarto, built from `docs/`.
 
 ## Contributing & security
 

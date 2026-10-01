@@ -18,6 +18,8 @@ subtitle: "Self-hosted SASE-style TLS inspection, declared end-to-end with Nix"
 
 OpenSASE is an open, self-hosted SASE-style edge, deployed from one source of truth: a Nix flake. Clients connect over OpenVPN; an mitmproxy addon decrypts and re-encrypts traffic per a URL-category policy; every payload is scanned by ClamAV; every verdict — `splice`, `bump`, `clean`, `INFECTED` — is written to a JSONL decision log.
 
+It is growing two halves: the **SASE edge** for teams and servers, and a **home appliance** — install it like a Pi-hole and every family device routes through it, with per-device policy, traffic visibility, and verdicts. The stack stays modular: the bare-minimum decrypt edge stands alone; scanner, DNS-policy, agent-inspection, and chat modules layer on as opt-ins. The planned shapes live in [Future directions](docs/future.qmd); the working tracker is the [Roadmap](docs/roadmap.qmd).
+
 Two deployment paths:
 
 ::: { layout-ncol="2" }
@@ -66,4 +68,4 @@ flowchart LR
 | VM boot smoke test | CI TODO |
 | Live EICAR verification | TODO |
 
-Read the [architecture](docs/architecture.qmd) overview, or go to [deployment](docs/deployment.qmd). Contributing, security policy, code of conduct: [CONTRIBUTING](https://github.com/shsingh/opensase/blob/master/CONTRIBUTING.md) · [SECURITY](https://github.com/shsingh/opensase/blob/master/SECURITY.md) · [CoC](https://github.com/shsingh/opensase/blob/master/CODE_OF_CONDUCT.md).
+Read the [architecture](docs/architecture.qmd) overview, or go to [deployment](docs/deployment.qmd). Project direction: [Roadmap](docs/roadmap.qmd) · [Future directions](docs/future.qmd). Operations help: [Troubleshooting](docs/troubleshooting.qmd). Contributing, security policy, code of conduct: [CONTRIBUTING](https://github.com/shsingh/opensase/blob/master/CONTRIBUTING.md) · [SECURITY](https://github.com/shsingh/opensase/blob/master/SECURITY.md) · [CoC](https://github.com/shsingh/opensase/blob/master/CODE_OF_CONDUCT.md).

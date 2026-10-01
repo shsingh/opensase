@@ -35,6 +35,10 @@ website:
         text: CI & Release
       - href: docs/roadmap.qmd
         text: Roadmap
+      - href: docs/future.qmd
+        text: Future
+      - href: docs/troubleshooting.qmd
+        text: Troubleshooting
     right:
       - href: docs/contributing.qmd
         text: Contributing
@@ -54,9 +58,11 @@ website:
           - docs/policy.qmd
           - docs/clients.qmd
           - docs/ci-release.qmd
+          - docs/troubleshooting.qmd
       - section: "Project"
         contents:
           - docs/roadmap.qmd
+          - docs/future.qmd
           - docs/contributing.qmd
           - docs/security.qmd
 
