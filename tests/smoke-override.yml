@@ -1,12 +1,14 @@
 # Smoke-test overrides for the release gate (release-images.yml, smoke job).
-# Compose semantics: mapping keys (image, entrypoint) replace, list keys
-# (ports) merge. Points the stack at the freshly built local images instead
-# of GHCR, publishes the ports the runner probes, and stubs the VPN server
-# (the smoke verifies images + verdict path, not the tunnel — a real openvpn
-# run needs PKI; see the README quick start). Not used by any normal deploy.
+# Compose semantics: mapping keys (image, entrypoint, command) replace, list
+# keys (ports) merge. Points the stack at the freshly built local images,
+# publishes the ports the runner probes, gives dnsmasq upstream servers (the
+# image has no /etc/resolv.conf), and stubs the VPN server (the smoke
+# verifies images + verdict path, not the tunnel -- a real openvpn run needs
+# PKI; see the README quick start). Not used by any normal deploy.
 services:
   dnsmasq:
     image: "opensase-dnsmasq:latest"
+    command: ["--no-resolv", "--server=1.1.1.1", "--log-facility=-"]
   clamav:
     image: "opensase-clamav:latest"
     ports:
