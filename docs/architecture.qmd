@@ -4,11 +4,14 @@ title: "Architecture"
 
 ## Components
 
+The appliance runs as one host — or one compose network — with four services
+inside a single trust boundary (dashed purple box below):
+
 ```{mermaid}
 flowchart LR
     client["VPN client<br/>(Windows / macOS / iOS / Linux)"]
 
-    subgraph edge["OpenSASE edge — one host or one compose network"]
+    subgraph edge["OpenSASE edge"]
         vpn["openvpn<br/>udp/5443<br/>TLS 1.2 · EC certs · tls-crypt"]
         dns["dnsmasq<br/>udp+tcp/53<br/>shared DNS for clients"]
         mitm["mitmproxy<br/>8080 explicit · TPROXY 80/443 transparent<br/>splice or bump per URL category<br/>clamd INSTREAM"]
@@ -26,7 +29,7 @@ flowchart LR
     mitm -- "clean" --> net
     mitm -. "INFECTED: blocked" .-> client
 
-    style edge fill:transparent,stroke:#712cf9,stroke-width:2px
+    style edge fill:transparent,stroke:#712cf9,stroke-width:2px,stroke-dasharray:6 4,color:#712cf9
 ```
 
 ## Verdict pipeline
