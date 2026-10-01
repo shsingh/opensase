@@ -75,6 +75,6 @@ The payoff is uniformity: one lockfile determines the appliance boot, the GHCR i
 
 {{< include docs/_board-snapshot.qmd >}}
 
-Closed milestones and the narrative reading order are on the [Roadmap](docs/roadmap.qmd) page; candidate future directions are on [Future](docs/future.qmd).
+Items that have already shipped are listed on the [Roadmap](docs/roadmap.qmd) page, which reads through the project direction area by area. Ideas that go beyond the current roadmap are collected under [Future](docs/future.qmd).
 
-Read the [architecture](docs/architecture.qmd) overview, or go to [deployment](docs/deployment.qmd). Project direction: [Roadmap](docs/roadmap.qmd) · [Future](docs/future.qmd). Operations help: [Troubleshooting](docs/troubleshooting.qmd). Contributing, security policy, code of conduct: [CONTRIBUTING](https://github.com/shsingh/opensase/blob/master/CONTRIBUTING.md) · [SECURITY](https://github.com/shsingh/opensase/blob/master/SECURITY.md) · [CoC](https://github.com/shsingh/opensase/blob/master/CODE_OF_CONDUCT.md).
+The rest of this site covers how the edge works and how to operate it: read the [architecture](docs/architecture.qmd) overview first, then [deployment](docs/deployment.qmd) to stand one up. When something misbehaves, [Troubleshooting](docs/troubleshooting.qmd) walks the debug path in stages. Contributing, the security policy, and the code of conduct are linked in the footer.

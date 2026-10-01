@@ -25,16 +25,15 @@ Status meaning: `Todo` is planned (open issue), `In Progress` is underway, and `
 
 ## Release & supply-chain
 
-**The first real release is the top priority.** The pipeline is fully wired —
-on a `v*` tag, CI Nix-builds all four images, **runs the compose smoke gate**
-(clamd verdicts + decision-log assertions against the freshly built images),
-and only then pushes to GHCR, records digests, attaches SPDX SBOMs, verifies
-the tag signature, and opens a draft release with a digest table and
-changelog. What has never happened is the tag; until
-[#7](https://github.com/shsingh/opensase/issues/7) lands, the quickstart's
-`docker compose pull` has nothing to pull. Manual `workflow_dispatch` is a
-full build + smoke rehearsal with zero registry side effects — rehearsed
-twice already, catching two image runtime defects before any release.
+**The release pipeline shipped.** On a `v*` tag, CI Nix-builds all four
+images, runs the compose smoke gate (clamd verdicts plus decision-log
+assertions against the freshly built images), and only then pushes to GHCR,
+records digests, attaches SPDX SBOMs, verifies the tag signature, and opens
+a release with a digest table and changelog.
+[v0.1.1](https://github.com/shsingh/opensase/releases/tag/v0.1.1) was cut
+this way, after rehearsing the full pipeline with `workflow_dispatch` six
+times. Those rehearsals surfaced and fixed seven image-runtime defects
+before any tag was cut.
 
 Signing already covers source: commits are signed, releases are signed tags,
 SBOMs are attached. [#9](https://github.com/shsingh/opensase/issues/9) extends
