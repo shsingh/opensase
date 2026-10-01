@@ -1,0 +1,161 @@
+---
+title: "Future directions"
+subtitle: "Use cases, candidate components, and the shapes we might build next"
+---
+
+OpenSASE is growing into **two halves**, deliberately:
+
+1. **The SASE half** — a policy-driven TLS-inspection edge for teams and
+   servers (what the [Roadmap](roadmap.qmd) mainly tracks).
+2. **The home-appliance half** — install it at home like a Pi-hole: every
+   device (phone, laptop, TV) routes through it, and you get what a DNS
+   blocker alone never gives you — **visibility** (what every device does),
+   **control** (block/splice/bump per device and category), and
+   **malware + DLP verdicts** on the traffic you choose to decrypt.
+
+Design rule for the second half: **lightweight-first, containerized
+everything.** Components must run happily on a Pi 5 / N100 mini-PC next to
+the existing four containers — anything needing more gets parked (section on
+GPU/ML below). Modularity is a deployment property: a compose-profile design
+([#29](https://github.com/shsingh/opensase/issues/29)) will make the
+**bare-minimum decrypt edge** (dnsmasq + openvpn + mitmproxy) installable on
+its own, with scanner, DNS-policy, agent-inspection, and chat modules as
+opt-ins.
+
+Each numbered item below links its tracking issue. Nothing here has dates —
+sequencing is by dependency, and the [board](https://github.com/users/shsingh/projects/5)
+carries Area/Target per card.
+
+## Home appliance: per-device policy + family visibility
+
+Devices are identified by their VPN client certificate CN;
+[`ovpn_getclient.sh`](https://github.com/shsingh/opensase/blob/master/openvpn/bin/ovpn_getclient.sh)
+already produces per-device profiles — policy just reads the CN. Passlist /
+bumplist decisions gain an optional device dimension: kids' tablet gets
+social-media blocked after 8pm, parents' laptop splices everything. A
+family dashboard rides the #16 metrics/export work: verdict counts per
+device, top domains, blocked events. The trust bootstrap (installing the
+appliance CA on family devices, with per-device splice-only opt-out) is
+treated as an honest documentation problem, not a hand-wave.
+
+→ [#19](https://github.com/shsingh/opensase/issues/19) · depends on #8
+(arm64 images — the Pi 5 *is* arm64), #15, #16
+
+## Agent traffic: MCP as a policy category
+
+Agents ride your VPN and call MCP servers. The protocol makes this
+inspectable: the remote transport is Streamable HTTP (JSON-RPC over HTTP
+POST, optional SSE), and spec drafts add request-metadata headers
+(`Mcp-Method`, `Mcp-Name`) so intermediaries can inspect without parsing
+payloads. So a tool call is just another HTTP category: passlist trusted
+servers (splice), bump untrusted ones and scan tool arguments *and* tool
+responses for prompt-injection shapes and credential leakage, logging every
+`tools/call` into the decision log with the tool name.
+
+The OpenSASE angle: MCP gateways (ContextForge, agentgateway, ToolHive,
+Docker MCP Gateway — solid, containerized projects) enforce *inside their
+deployment*; an agent that bypasses its gateway still rides this network.
+Gateway + network-edge inspection are layers of one design, not
+competitors. Patterns seeded from the inspection proxies' published
+taxonomies (MCPProxy's schema quarantine, Pipelock's 48-credential /
+25-injection pattern reference). Limits stated plainly: stdio transports
+never touch the network; mTLS'd servers can be spliced or blocked, not read.
+
+→ [#20](https://github.com/shsingh/opensase/issues/20) · LLM provider
+egress (per-device authorization + counters, deliberately without a full AI
+gateway) is [#21](https://github.com/shsingh/opensase/issues/21)
+
+## QUIC / HTTP-3: keep decrypt-and-block honest
+
+Browsers race to QUIC; an inspection edge that ignores UDP/443 leaks policy
+(same class of leak as IPv6 bypass, #13). Two stages: **fail-closed first**
+(block UDP/443, steer clients back to H2 via DNS HTTPS records —
+config-only), then real interception: mitmproxy 11 already ships full
+HTTP/3 support (aioquic-based), with the known caveat that Chrome distrusts
+private CAs for QUIC (bump path wants a publicly trusted cert; splice is
+unaffected).
+
+→ [#22](https://github.com/shsingh/opensase/issues/22)
+
+## Short-lived device identity (step-ca)
+
+The architectural answer to certificate renewal: step-ca (Smallstep,
+Apache-2.0, its own container) issues 24-hour device certs that renew
+themselves at two-thirds lifetime. Rotation stops being an event — the
+failure mode behind issue #3 largely disappears, revocation becomes
+expiration, phones re-enroll silently. Mixed-mode with the existing easy-rsa
+PKI documented; expiry checks become trivial.
+
+→ [#23](https://github.com/shsingh/opensase/issues/23) · complements #11
+
+## DNS-layer policy
+
+Verdicts start at name resolution: dnsmasq (already in-stack) gains RPZ
+zones from the same category philosophy, per-device sinkholing, and DNS
+query logging joined into the decision log — device attribution begins
+before TLS. Feeds reuse the signed-feed design from #14.
+
+→ [#25](https://github.com/shsingh/opensase/issues/25)
+
+## DLP verdicts: LEAK_BLOCK joins INFECTED
+
+The malware verdict generalizes into a verdict family: the bump path scans
+egress for secret/credential patterns; positive verdict blocks and logs
+`LEAK_BLOCK` exactly like `INFECTED`. Detector rules from MIT-licensed
+gitleaks rule sets (rules-as-data); feeds slot into #14's signed format.
+
+→ [#26](https://github.com/shsingh/opensase/issues/26)
+
+## Chat on the edge: Prosody XMPP (with stated limits)
+
+The family chat server runs on the appliance: **Prosody** (MIT, Lua,
+genuinely lightweight). An inspection component attaches via XEP-0114
+(external components, verified) and XEP-0356 Privileged Entity where
+moderation needs it: metadata logging, MUC moderation, spam filters for
+kids' accounts — all shaped as decision-log verdicts.
+
+The good bit: **file-transfer scanning.** Attachments sent through the chat
+server's http.upload (XEP-0363) flow through the same bump + ClamAV verdict
+path as any HTTPS egress — family chat attachments get INFECTED /
+LEAK_BLOCK verdicts like everything else.
+
+The hard limit, stated up front: **OMEMO (XEP-0384) end-to-end encryption
+makes message content invisible to any server-side component by design**
+(that is the spec's own threat model). We see metadata, unencrypted
+fallback traffic, and file transfers — not OMEMO content, ever. Bumping
+third-party providers' XMPP is certificate hell and is not planned.
+
+→ [#27](https://github.com/shsingh/opensase/issues/27)
+
+## Parked: identity-aware access (ZTNA-lite) and GPU/ML
+
+Two directions are deliberately behind the rest:
+
+- **ZTNA-lite** — publish internal services behind per-identity policy (the
+  VPN cert *is* the identity; lean variant is a mitmproxy addon, full
+  variant is Pomerium). Waits for the appliance basics to land.
+  → [#24](https://github.com/shsingh/opensase/issues/24)
+- **GPU/ML module** — semantic DLP, prompt-injection classifiers, a local
+  LLM judge on suspicious payloads. Needs real hardware and a licensing
+  conversation (the Python ML stack is Apache-2.0-heavy; in-process
+  imports would conflict with our GPLv2 — everything model-shaped ships as
+  its own container). → [#28](https://github.com/shsingh/opensase/issues/28)
+
+## Last, not least: post-quantum ciphers
+
+The deliberate last item: a PQ survey of every crypto hop (OpenVPN control
+channel via TLS 1.3/OpenSSL ML-KEM hybrids, data-channel cipher reality,
+mitmproxy and QUIC crypto paths) ending in a position statement and
+experiment plan. No hype until the appliance roadmap lands.
+
+→ [#30](https://github.com/shsingh/opensase/issues/30)
+
+## Licensing ground rules (binding on all of the above)
+
+OpenSASE's own code imports only MIT/BSD/LGPL/GPL-2-family code —
+**Apache-2.0 is never imported in-process** (GPLv2-incompatible). Apache-2.0,
+GPL-3, and AGPL components ship as separate containers, never vendored. The
+release pipeline's SBOMs will carry per-component license fields (see the
+[#7](https://github.com/shsingh/opensase/issues/7) acceptance criteria) so
+this stays auditable as the component list grows. Nix satisfies GPL
+source-offer structurally: every shipped binary builds from the public flake.
