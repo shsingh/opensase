@@ -23,7 +23,15 @@
         # dnsmasq: DNS for VPN clients
         image-dnsmasq = mkImage {
           name = "opensase-dnsmasq";
-          contents = [ pkgs.dnsmasq ];
+          contents = [
+            pkgs.dnsmasq
+            # minimal /etc/passwd: dnsmasq drops privileges to "nobody" when
+            # started as root, and a bare buildLayeredImage has no passwd
+            (pkgs.writeTextDir "etc/passwd" ''
+              root:x:0:0:root:/root:/bin/sh
+              nobody:x:65534:65534:nobody:/var/empty:/bin/sh
+            '')
+          ];
           config = {
             Entrypoint = [ "${pkgs.dnsmasq}/bin/dnsmasq" "--keep-in-foreground" ];
             ExposedPorts = { "53/tcp" = { }; "53/udp" = { }; };
@@ -35,15 +43,29 @@
           name = "opensase-clamav";
           contents = [
             pkgs.clamav
+            pkgs.coreutils # entry script uses `install`
             pkgs.dockerTools.caCertificates
+            # bare buildLayeredImage has no /etc/passwd and no /tmp; clamd
+            # needs both (User root lookup, LogFile /tmp/clamd.log, pid dir)
+            (pkgs.writeTextDir "etc/passwd" ''
+              root:x:0:0:root:/root:/bin/sh
+              clamav:x:900:900:clamav:/var/empty:/bin/sh
+              clamupdate:x:901:901:clamupdate:/var/empty:/bin/sh
+            '')
+            (pkgs.writeTextDir "etc/group" ''
+              root:x:0:
+              clamav:x:900:
+              clamupdate:x:901:
+            '')
           ];
           config = {
             # bootstrap DB on first run, then serve 3310
             Entrypoint = [
               "${pkgs.writeShellScript "clamav-entry" ''
-                install -d -m 0755 /var/lib/clamav
+                install -d -m 0755 /var/lib/clamav /tmp /var/run/clamav
                 if [ ! -e /var/lib/clamav/daily.cvd ] && [ -z "''${SKIP_FRESHCLAM:-}" ]; then
-                  ${pkgs.clamav}/bin/freshclam --datadir=/var/lib/clamav || \
+                  ${pkgs.clamav}/bin/freshclam --datadir=/var/lib/clamav \
+                    --config-file=${./freshclam.conf} || \
                     echo "WARN: freshclam failed; starting clamd anyway"
                 fi
                 exec ${pkgs.clamav}/bin/clamd --config-file=${./clamd.conf}
