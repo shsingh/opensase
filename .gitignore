@@ -3,3 +3,11 @@ tofu/.terraform/
 tofu/.terraform.lock.hcl.bak
 *.tfstate*
 .env
+
+# python test artifacts
+__pycache__/
+.pytest_cache/
+
+# nix build outputs
+result
+result-*
