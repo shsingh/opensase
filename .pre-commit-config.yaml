@@ -6,7 +6,7 @@ ci:
   autofix_prs: false
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
         exclude: '.*\.(pem|crt|key)$'   # never rewrite cert/key material
@@ -23,7 +23,7 @@ repos:
   # shell scripts (nix/vpn-init.sh, nix/vpn-getclient.sh); Nix-side
   # entrypoints are writeShellApplication-built and checked at eval time
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
+    rev: v0.11.0.1-1
     hooks:
       - id: shellcheck
         # vendored easyrsa upstream targets POSIX sh with bash-isms; it ships
