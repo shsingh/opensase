@@ -224,7 +224,7 @@ jobs:
             echo "> **Nix users:** \`nix run .#load-images\` builds the byte-identical images from the flake — no pull needed."
             echo "> **Lab appliance — DO NOT run unmodified in production.**"
             echo
-            echo "Docs: https://shsingh.github.io/opensase/"
+            echo "Docs: https://opensase.kalatopi.sh/"
           } > release-notes.md
           cat release-notes.md
 
