@@ -9,7 +9,7 @@ website:
   title: "OpenSASE"
   description: "Self-hosted SASE-style TLS inspection: OpenVPN + mitmproxy + ClamAV, declared end-to-end with Nix. Ships as OCI containers (no Nix needed) or a NixOS appliance."
   page-navigation: true
-  site-url: https://shsingh.github.io/opensase/
+  site-url: https://opensase.kalatopi.sh/
   repo-url: https://github.com/shsingh/opensase
   repo-branch: master
   repo-actions: [edit, issue]
